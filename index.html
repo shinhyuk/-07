@@ -3,744 +3,530 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>강남07 버스 도착정보 - 선정릉역 → 루첸타워</title>
+  <title>GitHub Trending - 주간 & 월간 인기 저장소</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --primary: #1a73e8;
-      --primary-dark: #1557b0;
-      --bg: #f5f7fa;
-      --card-bg: #ffffff;
-      --text: #1f2937;
-      --text-secondary: #6b7280;
-      --border: #e5e7eb;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --village-bus: #33cc99;
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-hover: #1c2129;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-secondary: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79b8ff;
+      --star: #e3b341;
+      --fork: #8b949e;
+      --lang-dot: #f1e05a;
+      --weekly-accent: #da3633;
+      --monthly-accent: #a371f7;
+      --badge-bg: rgba(88, 166, 255, 0.1);
+      --skeleton: #21262d;
+      --skeleton-shine: #30363d;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      line-height: 1.5;
     }
 
     .header {
-      background: linear-gradient(135deg, var(--village-bus), #2ab586);
-      color: white;
-      padding: 20px 16px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 16px;
       text-align: center;
-      position: relative;
     }
 
     .header h1 {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 4px;
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--monthly-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
     }
 
-    .header .route-badge {
-      display: inline-block;
-      background: rgba(255,255,255,0.25);
-      border-radius: 20px;
-      padding: 4px 14px;
-      font-size: 13px;
-      margin-top: 6px;
-    }
-
-    .route-info {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 12px;
-      font-size: 15px;
-    }
-
-    .route-info .arrow {
-      font-size: 18px;
-      opacity: 0.8;
-    }
-
-    .route-info .station {
-      background: rgba(255,255,255,0.2);
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-weight: 500;
+    .header p {
+      color: var(--text-secondary);
+      font-size: 14px;
     }
 
     .container {
-      max-width: 480px;
+      max-width: 960px;
       margin: 0 auto;
-      padding: 16px;
+      padding: 24px 16px;
     }
 
-    .api-key-section {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    .sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
     }
 
-    .api-key-section h3 {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 10px;
+    @media (max-width: 768px) {
+      .sections { grid-template-columns: 1fr; }
     }
 
-    .api-key-section .input-group {
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .section-header {
       display: flex;
-      gap: 8px;
-    }
-
-    .api-key-section input {
-      flex: 1;
-      padding: 10px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .api-key-section input:focus {
-      border-color: var(--primary);
-    }
-
-    .btn {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: var(--primary-dark);
-    }
-
-    .btn-primary:active {
-      transform: scale(0.97);
-    }
-
-    .btn-sm {
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-
-    .help-link {
-      font-size: 12px;
-      color: var(--primary);
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 8px;
-    }
-
-    .arrival-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-
-    .arrival-card .card-header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      gap: 10px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .arrival-card .card-title {
+    .section-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .section-icon.weekly {
+      background: rgba(218, 54, 51, 0.15);
+      color: var(--weekly-accent);
+    }
+
+    .section-icon.monthly {
+      background: rgba(163, 113, 247, 0.15);
+      color: var(--monthly-accent);
+    }
+
+    .section-header h2 {
       font-size: 16px;
       font-weight: 700;
     }
 
-    .arrival-card .refresh-time {
+    .section-header .period {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-left: auto;
+    }
+
+    .repo-list {
+      list-style: none;
+    }
+
+    .repo-item {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .repo-item:last-child {
+      border-bottom: none;
+    }
+
+    .repo-item:hover {
+      background: var(--surface-hover);
+    }
+
+    .repo-item a {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .repo-rank {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--border);
+      line-height: 1;
+    }
+
+    .repo-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      padding-right: 36px;
+    }
+
+    .repo-name .owner {
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .repo-name .slash {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .repo-name .name {
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .repo-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.5;
+      padding-right: 36px;
+    }
+
+    .repo-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       font-size: 12px;
       color: var(--text-secondary);
     }
 
-    .bus-arrival {
-      display: flex;
-      align-items: center;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .bus-arrival:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .bus-arrival:first-of-type {
-      padding-top: 0;
-    }
-
-    .bus-icon {
-      width: 44px;
-      height: 44px;
-      background: var(--village-bus);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 18px;
-      margin-right: 14px;
+    .lang-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
       flex-shrink: 0;
     }
 
-    .bus-details {
-      flex: 1;
-    }
-
-    .bus-details .bus-label {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 2px;
-    }
-
-    .bus-details .bus-message {
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .arrival-time {
-      text-align: right;
-    }
-
-    .arrival-time .time-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    .arrival-time .time-unit {
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-
-    .arrival-time.soon .time-value {
-      color: var(--danger);
-    }
-
-    .arrival-time.arriving .time-value {
-      color: var(--success);
-      font-size: 18px;
-    }
-
-    .status-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px;
-      background: var(--card-bg);
-      border-radius: 12px;
-      margin-bottom: 12px;
-      font-size: 13px;
-      color: var(--text-secondary);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--success);
-      animation: pulse 2s infinite;
-    }
-
-    .status-dot.error {
-      background: var(--danger);
-      animation: none;
-    }
-
-    .status-dot.loading {
-      background: var(--warning);
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .refresh-btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--card-bg);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
+    .star-icon, .fork-icon {
       font-size: 14px;
+    }
+
+    .stars-period {
+      color: var(--star);
       font-weight: 600;
-      color: var(--primary);
+      font-size: 11px;
+      background: rgba(227, 179, 65, 0.1);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* Loading skeleton */
+    .skeleton-item {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .skeleton-item:last-child {
+      border-bottom: none;
+    }
+
+    .skeleton-line {
+      height: 14px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--skeleton) 25%, var(--skeleton-shine) 50%, var(--skeleton) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    .skeleton-line.short { width: 40%; margin-bottom: 8px; }
+    .skeleton-line.medium { width: 70%; margin-bottom: 8px; }
+    .skeleton-line.long { width: 90%; margin-bottom: 10px; }
+    .skeleton-line.tiny { width: 25%; height: 12px; }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .error-msg {
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .error-msg .retry-btn {
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
       cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 12px;
+      font-weight: 600;
     }
 
-    .refresh-btn:hover {
-      background: #f0f4ff;
+    .error-msg .retry-btn:hover {
+      background: var(--accent-hover);
     }
 
-    .refresh-btn:active {
-      transform: scale(0.98);
+    .refresh-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 0 4px;
     }
 
-    .refresh-btn:disabled {
+    .refresh-bar .last-updated {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .refresh-bar .refresh-btn {
+      padding: 6px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 500;
+    }
+
+    .refresh-bar .refresh-btn:hover {
+      background: var(--surface);
+      border-color: var(--text-secondary);
+    }
+
+    .refresh-bar .refresh-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
-    .no-data {
+    .footer {
       text-align: center;
-      padding: 40px 20px;
-      color: var(--text-secondary);
-    }
-
-    .no-data .icon {
-      font-size: 40px;
-      margin-bottom: 12px;
-    }
-
-    .no-data p {
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .countdown-bar {
-      height: 3px;
-      background: var(--border);
-      border-radius: 2px;
-      margin-bottom: 16px;
-      overflow: hidden;
-    }
-
-    .countdown-bar .fill {
-      height: 100%;
-      background: var(--primary);
-      border-radius: 2px;
-      transition: width 1s linear;
-    }
-
-    .stop-info {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 16px 20px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .stop-info .stop-number {
-      background: #f0f4ff;
-      color: var(--primary);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 14px;
-    }
-
-    .stop-info .stop-name {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .stop-info .stop-desc {
+      padding: 32px 16px;
       font-size: 12px;
       color: var(--text-secondary);
     }
 
-    .extra-info {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-      flex-wrap: wrap;
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
     }
 
-    .extra-info .tag {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: #f3f4f6;
-      color: var(--text-secondary);
-    }
-
-    .footer {
-      text-align: center;
-      padding: 20px 16px;
-      font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #111827;
-        --card-bg: #1f2937;
-        --text: #f9fafb;
-        --text-secondary: #9ca3af;
-        --border: #374151;
-      }
-
-      .api-key-section input {
-        background: #111827;
-        color: var(--text);
-      }
-
-      .refresh-btn:hover {
-        background: #283548;
-      }
-
-      .stop-info .stop-number {
-        background: #1e3a5f;
-      }
-
-      .extra-info .tag {
-        background: #374151;
-      }
+    .footer a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>강남07 버스 도착정보</h1>
-    <div class="route-badge">마을버스</div>
-    <div class="route-info">
-      <span class="station">선정릉역</span>
-      <span class="arrow">→</span>
-      <span class="station">루첸타워</span>
-    </div>
+    <h1>GitHub Trending</h1>
+    <p>주간 & 월간 가장 인기 있는 저장소 TOP 5</p>
   </div>
 
   <div class="container">
-    <!-- API Key Section -->
-    <div class="api-key-section" id="apiKeySection">
-      <h3>서울 열린데이터광장 API 인증키</h3>
-      <div class="input-group">
-        <input type="text" id="apiKeyInput" placeholder="API 인증키를 입력하세요" />
-        <button class="btn btn-primary" onclick="saveApiKey()">저장</button>
+    <div class="refresh-bar">
+      <span class="last-updated" id="lastUpdated"></span>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">새로고침</button>
+    </div>
+
+    <div class="sections">
+      <!-- Weekly -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon weekly">🔥</div>
+          <h2>주간 인기</h2>
+          <span class="period">This Week</span>
+        </div>
+        <ul class="repo-list" id="weeklyList">
+          <!-- loading -->
+        </ul>
       </div>
-      <a class="help-link" href="https://data.seoul.go.kr/" target="_blank" rel="noopener">
-        인증키 발급받기 (서울 열린데이터광장) &rarr;
-      </a>
-    </div>
 
-    <!-- Status -->
-    <div class="status-bar" id="statusBar" style="display:none;">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">실시간 업데이트 중</span>
-    </div>
-
-    <!-- Countdown -->
-    <div class="countdown-bar" id="countdownBar" style="display:none;">
-      <div class="fill" id="countdownFill"></div>
-    </div>
-
-    <!-- Stop Info -->
-    <div class="stop-info" id="stopInfo" style="display:none;">
-      <div>
-        <div class="stop-number" id="stopNumber">23214</div>
-      </div>
-      <div>
-        <div class="stop-name" id="stopName">선정릉역</div>
-        <div class="stop-desc" id="stopDesc">강남07 버스 승차 정류장</div>
+      <!-- Monthly -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon monthly">🏆</div>
+          <h2>월간 인기</h2>
+          <span class="period">This Month</span>
+        </div>
+        <ul class="repo-list" id="monthlyList">
+          <!-- loading -->
+        </ul>
       </div>
     </div>
-
-    <!-- Arrival Info -->
-    <div class="arrival-card" id="arrivalCard" style="display:none;">
-      <div class="card-header">
-        <span class="card-title">도착 예정 정보</span>
-        <span class="refresh-time" id="refreshTime"></span>
-      </div>
-      <div id="arrivalList">
-        <!-- Dynamically filled -->
-      </div>
-    </div>
-
-    <!-- No Data -->
-    <div class="no-data" id="noData" style="display:none;">
-      <div class="icon">🚌</div>
-      <p id="noDataMsg">API 키를 입력하면<br>실시간 도착정보를 확인할 수 있습니다.</p>
-    </div>
-
-    <!-- Refresh Button -->
-    <button class="refresh-btn" id="refreshBtn" onclick="fetchArrival()" style="display:none;">
-      새로고침
-    </button>
 
     <div class="footer">
-      서울시 공공데이터 기반 실시간 버스도착정보<br>
-      30초마다 자동 갱신됩니다
+      Data from <a href="https://github.com/trending" target="_blank" rel="noopener">GitHub Trending</a>
     </div>
   </div>
 
   <script>
-    // ── Configuration ──
-    const CONFIG = {
-      // 선정릉역 정류장 ARS 번호
-      arsId: '23214',
-      // 강남07 버스 노선명 (API 응답에서 필터링용)
-      busRouteName: '강남07',
-      // 자동 갱신 간격 (ms)
-      refreshInterval: 30000,
-      // Seoul Open Data API base
-      apiBase: 'http://openapi.seoul.go.kr:8088',
+    const LANG_COLORS = {
+      JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572A5',
+      Java: '#b07219', Go: '#00ADD8', Rust: '#dea584', C: '#555555',
+      'C++': '#f34b7d', 'C#': '#178600', Ruby: '#701516', PHP: '#4F5D95',
+      Swift: '#F05138', Kotlin: '#A97BFF', Dart: '#00B4AB', Lua: '#000080',
+      Shell: '#89e051', HTML: '#e34c26', CSS: '#563d7c', Vue: '#41b883',
+      Svelte: '#ff3e00', Zig: '#ec915c', Scala: '#c22d40', R: '#198CE7',
+      Jupyter: '#DA5B0B', Elixir: '#6e4a7e', Haskell: '#5e5086',
     };
 
-    let apiKey = localStorage.getItem('busApiKey') || '';
-    let refreshTimer = null;
-    let countdownTimer = null;
-    let countdownValue = 30;
-
-    // ── DOM Elements ──
-    const $ = (id) => document.getElementById(id);
-
-    // ── Init ──
-    function init() {
-      if (apiKey) {
-        $('apiKeyInput').value = maskKey(apiKey);
-        startTracking();
-      } else {
-        $('noData').style.display = 'block';
+    function showLoading(listEl) {
+      let html = '';
+      for (let i = 0; i < 5; i++) {
+        html += `<li class="skeleton-item">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line long"></div>
+          <div class="skeleton-line tiny"></div>
+        </li>`;
       }
+      listEl.innerHTML = html;
     }
 
-    function maskKey(key) {
-      if (key.length <= 8) return key;
-      return key.substring(0, 4) + '****' + key.substring(key.length - 4);
-    }
-
-    function saveApiKey() {
-      const input = $('apiKeyInput').value.trim();
-      if (!input || input.includes('****')) {
-        // If masked, only save if we don't have a key
-        if (!apiKey) {
-          alert('API 인증키를 입력해주세요.');
-          return;
-        }
-      } else {
-        apiKey = input;
-        localStorage.setItem('busApiKey', apiKey);
-        $('apiKeyInput').value = maskKey(apiKey);
-      }
-      startTracking();
-    }
-
-    function startTracking() {
-      $('statusBar').style.display = 'flex';
-      $('countdownBar').style.display = 'block';
-      $('stopInfo').style.display = 'flex';
-      $('refreshBtn').style.display = 'block';
-      $('noData').style.display = 'none';
-
-      fetchArrival();
-      if (refreshTimer) clearInterval(refreshTimer);
-      refreshTimer = setInterval(fetchArrival, CONFIG.refreshInterval);
-    }
-
-    function startCountdown() {
-      countdownValue = 30;
-      if (countdownTimer) clearInterval(countdownTimer);
-      $('countdownFill').style.width = '100%';
-      countdownTimer = setInterval(() => {
-        countdownValue--;
-        const pct = (countdownValue / 30) * 100;
-        $('countdownFill').style.width = pct + '%';
-        if (countdownValue <= 0) {
-          clearInterval(countdownTimer);
-        }
-      }, 1000);
-    }
-
-    // ── Fetch Arrival Info ──
-    async function fetchArrival() {
-      if (!apiKey) return;
-
-      setStatus('loading', '조회 중...');
-      $('refreshBtn').disabled = true;
-
-      try {
-        // 서울 열린데이터광장 API: 정류소별 버스 도착 예정 정보
-        const url = `${CONFIG.apiBase}/${encodeURIComponent(apiKey)}/json/getBusArrivalList/1/20/${CONFIG.arsId}`;
-
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.errorMessage && data.errorMessage.status !== 200) {
-          // Try alternative API name
-          const url2 = `${CONFIG.apiBase}/${encodeURIComponent(apiKey)}/json/GetBusArrivalList/1/20/${CONFIG.arsId}`;
-          const response2 = await fetch(url2);
-          if (!response2.ok) throw new Error(`HTTP ${response2.status}`);
-          const data2 = await response2.json();
-          handleResponse(data2);
-          return;
-        }
-
-        handleResponse(data);
-      } catch (err) {
-        console.error('Fetch error:', err);
-        setStatus('error', '조회 실패 - ' + err.message);
-        showNoData('데이터를 불러올 수 없습니다.<br>API 키를 확인하거나 잠시 후 다시 시도해주세요.<br><br><small>CORS 오류 시 로컬 서버에서 실행하거나<br>브라우저 CORS 확장을 사용해주세요.</small>');
-      } finally {
-        $('refreshBtn').disabled = false;
-      }
-    }
-
-    function handleResponse(data) {
-      // Seoul Open Data API response structure
-      const key = Object.keys(data).find(k => k !== 'errorMessage') || Object.keys(data)[0];
-      const result = data[key] || data;
-
-      // Check for error
-      if (result.RESULT && result.RESULT.CODE !== 'INFO-000') {
-        setStatus('error', result.RESULT.MESSAGE || '오류 발생');
-        showNoData(result.RESULT.MESSAGE || '데이터를 조회할 수 없습니다.');
-        return;
-      }
-
-      const rows = result.row || result.ROW || result.msgBody?.itemList || [];
-
-      // Filter for 강남07
-      const gangnam07 = rows.filter(item => {
-        const name = item.rtNm || item.ROUTE_NM || item.busRouteNm || '';
-        return name.includes(CONFIG.busRouteName);
-      });
-
-      if (gangnam07.length === 0) {
-        // Show all buses for debugging, but indicate no 강남07 found
-        setStatus('error', '강남07 도착정보 없음');
-        showNoData('현재 강남07 버스 도착 예정 정보가 없습니다.<br>운행 시간이 아니거나 정류장 정보를 확인해주세요.');
-        return;
-      }
-
-      renderArrivals(gangnam07);
-      setStatus('ok', '실시간 업데이트 중');
-      startCountdown();
-
-      const now = new Date();
-      $('refreshTime').textContent = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} 갱신`;
-
-      // Update stop name from API data if available
-      const firstItem = gangnam07[0];
-      const stNm = firstItem.stNm || firstItem.STATION_NM || '';
-      if (stNm) {
-        $('stopName').textContent = stNm;
-      }
-    }
-
-    function renderArrivals(items) {
-      $('arrivalCard').style.display = 'block';
-      $('noData').style.display = 'none';
-
-      const list = $('arrivalList');
-      list.innerHTML = '';
-
-      items.forEach(item => {
-        // Parse arrival info
-        const msg1 = item.arrmsg1 || item.ARRIVEMSG1 || '';
-        const msg2 = item.arrmsg2 || item.ARRIVEMSG2 || '';
-        const time1 = item.exps1 || item.EXPS1 || 0; // seconds
-        const time2 = item.exps2 || item.EXPS2 || 0;
-        const vehId1 = item.vehId1 || item.VEHICLE_ID1 || '';
-        const vehId2 = item.vehId2 || item.VEHICLE_ID2 || '';
-        const stationNm = item.nxtStn || item.NEXT_STATION || '';
-        const congestion1 = item.reride_Num1 || '';
-        const congestion2 = item.reride_Num2 || '';
-        const isArrive1 = item.isArrive1 || '';
-        const isArrive2 = item.isArrive2 || '';
-        const busType = item.busType1 || '';
-
-        // First bus
-        list.appendChild(createArrivalRow('첫번째 버스', msg1, time1, stationNm, 1));
-
-        // Second bus
-        if (msg2 && msg2 !== '도착정보없음') {
-          const nxtStn2 = item.nxtStn2 || item.NEXT_STATION2 || '';
-          list.appendChild(createArrivalRow('두번째 버스', msg2, time2, nxtStn2, 2));
-        }
-      });
-    }
-
-    function createArrivalRow(label, message, seconds, nextStation, order) {
-      const div = document.createElement('div');
-      div.className = 'bus-arrival';
-
-      const minutes = Math.floor(seconds / 60);
-      const isSoon = minutes <= 3 && minutes > 0;
-      const isArriving = message.includes('곧 도착') || message.includes('도착예정');
-
-      let timeDisplay = '';
-      let timeClass = '';
-
-      if (isArriving || message.includes('곧 도착')) {
-        timeDisplay = `<span class="time-value">곧 도착</span>`;
-        timeClass = 'arriving';
-      } else if (seconds > 0) {
-        timeDisplay = `<span class="time-value">${minutes}</span><span class="time-unit">분</span>`;
-        timeClass = isSoon ? 'soon' : '';
-      }
-
-      const extraTags = [];
-      if (nextStation) {
-        extraTags.push(`<span class="tag">${nextStation} 부근</span>`);
-      }
-      if (message.includes('저상')) {
-        extraTags.push(`<span class="tag">저상버스</span>`);
-      }
-
-      div.innerHTML = `
-        <div class="bus-icon">${order === 1 ? '1' : '2'}</div>
-        <div class="bus-details">
-          <div class="bus-label">${label}</div>
-          <div class="bus-message">${sanitize(message)}</div>
-          ${extraTags.length ? `<div class="extra-info">${extraTags.join('')}</div>` : ''}
-        </div>
-        ${timeDisplay ? `<div class="arrival-time ${timeClass}">${timeDisplay}</div>` : ''}
-      `;
-
-      return div;
+    function showError(listEl, msg) {
+      listEl.innerHTML = `<li class="error-msg">
+        ${msg || '데이터를 불러올 수 없습니다.'}
+        <br><button class="retry-btn" onclick="loadAll()">다시 시도</button>
+      </li>`;
     }
 
     function sanitize(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
+      if (!str) return '';
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
     }
 
-    function setStatus(type, text) {
-      const dot = $('statusDot');
-      dot.className = 'status-dot' + (type === 'error' ? ' error' : type === 'loading' ? ' loading' : '');
-      $('statusText').textContent = text;
+    function formatNumber(n) {
+      if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+      return String(n);
     }
 
-    function showNoData(msg) {
-      $('arrivalCard').style.display = 'none';
-      $('noData').style.display = 'block';
-      $('noDataMsg').innerHTML = msg;
+    function renderRepos(listEl, repos) {
+      if (!repos || repos.length === 0) {
+        showError(listEl, '트렌딩 저장소를 찾을 수 없습니다.');
+        return;
+      }
+
+      listEl.innerHTML = repos.slice(0, 5).map((repo, i) => {
+        const langColor = LANG_COLORS[repo.language] || '#8b949e';
+        const fullName = repo.full_name || `${repo.owner}/${repo.name}`;
+        const [owner, name] = fullName.split('/');
+        const url = repo.html_url || `https://github.com/${fullName}`;
+
+        return `<li class="repo-item">
+          <a href="${sanitize(url)}" target="_blank" rel="noopener">
+            <span class="repo-rank">${i + 1}</span>
+            <div class="repo-name">
+              <span class="owner">${sanitize(owner)}</span>
+              <span class="slash">/</span>
+              <span class="name">${sanitize(name)}</span>
+            </div>
+            <div class="repo-desc">${sanitize(repo.description)}</div>
+            <div class="repo-meta">
+              ${repo.language ? `<span class="meta-item">
+                <span class="lang-dot" style="background:${langColor}"></span>
+                ${sanitize(repo.language)}
+              </span>` : ''}
+              <span class="meta-item">
+                <span class="star-icon">&#9733;</span>
+                ${formatNumber(repo.stargazers_count)}
+              </span>
+              <span class="meta-item">
+                <span class="fork-icon">&#9741;</span>
+                ${formatNumber(repo.forks_count)}
+              </span>
+              ${repo.period_stars ? `<span class="stars-period">
+                +${formatNumber(repo.period_stars)} stars
+              </span>` : ''}
+            </div>
+          </a>
+        </li>`;
+      }).join('');
     }
 
-    // ── Start ──
-    init();
+    async function fetchTrending(since) {
+      // GitHub Search API: stars gained in period
+      const now = new Date();
+      let dateStr;
+
+      if (since === 'weekly') {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 7);
+        dateStr = d.toISOString().split('T')[0];
+      } else {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 30);
+        dateStr = d.toISOString().split('T')[0];
+      }
+
+      // Search repos created or pushed recently, sorted by stars
+      const query = `created:>${dateStr}`;
+      const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`;
+
+      const resp = await fetch(url, {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
+      });
+
+      if (!resp.ok) {
+        throw new Error(`GitHub API: ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      return (data.items || []).map(repo => ({
+        full_name: repo.full_name,
+        html_url: repo.html_url,
+        description: repo.description,
+        language: repo.language,
+        stargazers_count: repo.stargazers_count,
+        forks_count: repo.forks_count,
+        period_stars: repo.stargazers_count, // all stars are from the period since repo is new
+      }));
+    }
+
+    async function loadSection(listEl, since) {
+      showLoading(listEl);
+      try {
+        const repos = await fetchTrending(since);
+        renderRepos(listEl, repos);
+      } catch (err) {
+        console.error(err);
+        showError(listEl, `오류: ${err.message}`);
+      }
+    }
+
+    async function loadAll() {
+      const btn = document.getElementById('refreshBtn');
+      btn.disabled = true;
+      btn.textContent = '로딩 중...';
+
+      await Promise.all([
+        loadSection(document.getElementById('weeklyList'), 'weekly'),
+        loadSection(document.getElementById('monthlyList'), 'monthly'),
+      ]);
+
+      const now = new Date();
+      const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      document.getElementById('lastUpdated').textContent = `마지막 업데이트: ${timeStr}`;
+
+      btn.disabled = false;
+      btn.textContent = '새로고침';
+    }
+
+    loadAll();
   </script>
 </body>
 </html>
