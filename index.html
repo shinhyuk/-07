@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>강남07 버스 도착정보 - 선정릉역 → 루첸타워</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #1557b0;
+      --bg: #f5f7fa;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --text-secondary: #6b7280;
+      --border: #e5e7eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --village-bus: #33cc99;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--village-bus), #2ab586);
+      color: white;
+      padding: 20px 16px 24px;
+      text-align: center;
+      position: relative;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .header .route-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .route-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 15px;
+    }
+
+    .route-info .arrow {
+      font-size: 18px;
+      opacity: 0.8;
+    }
+
+    .route-info .station {
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .api-key-section {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .api-key-section h3 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .api-key-section .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .api-key-section input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .api-key-section input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .help-link {
+      font-size: 12px;
+      color: var(--primary);
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 8px;
+    }
+
+    .arrival-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .arrival-card .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .arrival-card .card-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .arrival-card .refresh-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .bus-arrival {
+      display: flex;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .bus-arrival:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .bus-arrival:first-of-type {
+      padding-top: 0;
+    }
+
+    .bus-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--village-bus);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      margin-right: 14px;
+      flex-shrink: 0;
+    }
+
+    .bus-details {
+      flex: 1;
+    }
+
+    .bus-details .bus-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .bus-details .bus-message {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .arrival-time {
+      text-align: right;
+    }
+
+    .arrival-time .time-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .arrival-time .time-unit {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .arrival-time.soon .time-value {
+      color: var(--danger);
+    }
+
+    .arrival-time.arriving .time-value {
+      color: var(--success);
+      font-size: 18px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.error {
+      background: var(--danger);
+      animation: none;
+    }
+
+    .status-dot.loading {
+      background: var(--warning);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .refresh-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .refresh-btn:hover {
+      background: #f0f4ff;
+    }
+
+    .refresh-btn:active {
+      transform: scale(0.98);
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .no-data .icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    .no-data p {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .countdown-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .countdown-bar .fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 2px;
+      transition: width 1s linear;
+    }
+
+    .stop-info {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stop-info .stop-number {
+      background: #f0f4ff;
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .stop-info .stop-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .stop-info .stop-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .extra-info {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .extra-info .tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #f3f4f6;
+      color: var(--text-secondary);
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px 16px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111827;
+        --card-bg: #1f2937;
+        --text: #f9fafb;
+        --text-secondary: #9ca3af;
+        --border: #374151;
+      }
+
+      .api-key-section input {
+        background: #111827;
+        color: var(--text);
+      }
+
+      .refresh-btn:hover {
+        background: #283548;
+      }
+
+      .stop-info .stop-number {
+        background: #1e3a5f;
+      }
+
+      .extra-info .tag {
+        background: #374151;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>강남07 버스 도착정보</h1>
+    <div class="route-badge">마을버스</div>
+    <div class="route-info">
+      <span class="station">선정릉역</span>
+      <span class="arrow">→</span>
+      <span class="station">루첸타워</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- API Key Section -->
+    <div class="api-key-section" id="apiKeySection">
+      <h3>서울 열린데이터광장 API 인증키</h3>
+      <div class="input-group">
+        <input type="text" id="apiKeyInput" placeholder="API 인증키를 입력하세요" />
+        <button class="btn btn-primary" onclick="saveApiKey()">저장</button>
+      </div>
+      <a class="help-link" href="https://data.seoul.go.kr/" target="_blank" rel="noopener">
+        인증키 발급받기 (서울 열린데이터광장) &rarr;
+      </a>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar" id="statusBar" style="display:none;">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">실시간 업데이트 중</span>
+    </div>
+
+    <!-- Countdown -->
+    <div class="countdown-bar" id="countdownBar" style="display:none;">
+      <div class="fill" id="countdownFill"></div>
+    </div>
+
+    <!-- Stop Info -->
+    <div class="stop-info" id="stopInfo" style="display:none;">
+      <div>
+        <div class="stop-number" id="stopNumber">23214</div>
+      </div>
+      <div>
+        <div class="stop-name" id="stopName">선정릉역</div>
+        <div class="stop-desc" id="stopDesc">강남07 버스 승차 정류장</div>
+      </div>
+    </div>
+
+    <!-- Arrival Info -->
+    <div class="arrival-card" id="arrivalCard" style="display:none;">
+      <div class="card-header">
+        <span class="card-title">도착 예정 정보</span>
+        <span class="refresh-time" id="refreshTime"></span>
+      </div>
+      <div id="arrivalList">
+        <!-- Dynamically filled -->
+      </div>
+    </div>
+
+    <!-- No Data -->
+    <div class="no-data" id="noData" style="display:none;">
+      <div class="icon">🚌</div>
+      <p id="noDataMsg">API 키를 입력하면<br>실시간 도착정보를 확인할 수 있습니다.</p>
+    </div>
+
+    <!-- Refresh Button -->
+    <button class="refresh-btn" id="refreshBtn" onclick="fetchArrival()" style="display:none;">
+      새로고침
+    </button>
+
+    <div class="footer">
+      서울시 공공데이터 기반 실시간 버스도착정보<br>
+      30초마다 자동 갱신됩니다
+    </div>
+  </div>
+
+  <script>
+    // ── Configuration ──
+    const CONFIG = {
+      // 선정릉역 정류장 ARS 번호
+      arsId: '23214',
+      // 강남07 버스 노선명 (API 응답에서 필터링용)
+      busRouteName: '강남07',
+      // 자동 갱신 간격 (ms)
+      refreshInterval: 30000,
+      // Seoul Open Data API base
+      apiBase: 'http://openapi.seoul.go.kr:8088',
+    };
+
+    let apiKey = localStorage.getItem('busApiKey') || '';
+    let refreshTimer = null;
+    let countdownTimer = null;
+    let countdownValue = 30;
+
+    // ── DOM Elements ──
+    const $ = (id) => document.getElementById(id);
+
+    // ── Init ──
+    function init() {
+      if (apiKey) {
+        $('apiKeyInput').value = maskKey(apiKey);
+        startTracking();
+      } else {
+        $('noData').style.display = 'block';
+      }
+    }
+
+    function maskKey(key) {
+      if (key.length <= 8) return key;
+      return key.substring(0, 4) + '****' + key.substring(key.length - 4);
+    }
+
+    function saveApiKey() {
+      const input = $('apiKeyInput').value.trim();
+      if (!input || input.includes('****')) {
+        // If masked, only save if we don't have a key
+        if (!apiKey) {
+          alert('API 인증키를 입력해주세요.');
+          return;
+        }
+      } else {
+        apiKey = input;
+        localStorage.setItem('busApiKey', apiKey);
+        $('apiKeyInput').value = maskKey(apiKey);
+      }
+      startTracking();
+    }
+
+    function startTracking() {
+      $('statusBar').style.display = 'flex';
+      $('countdownBar').style.display = 'block';
+      $('stopInfo').style.display = 'flex';
+      $('refreshBtn').style.display = 'block';
+      $('noData').style.display = 'none';
+
+      fetchArrival();
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(fetchArrival, CONFIG.refreshInterval);
+    }
+
+    function startCountdown() {
+      countdownValue = 30;
+      if (countdownTimer) clearInterval(countdownTimer);
+      $('countdownFill').style.width = '100%';
+      countdownTimer = setInterval(() => {
+        countdownValue--;
+        const pct = (countdownValue / 30) * 100;
+        $('countdownFill').style.width = pct + '%';
+        if (countdownValue <= 0) {
+          clearInterval(countdownTimer);
+        }
+      }, 1000);
+    }
+
+    // ── Fetch Arrival Info ──
+    async function fetchArrival() {
+      if (!apiKey) return;
+
+      setStatus('loading', '조회 중...');
+      $('refreshBtn').disabled = true;
+
+      try {
+        // 서울 열린데이터광장 API: 정류소별 버스 도착 예정 정보
+        const url = `${CONFIG.apiBase}/${encodeURIComponent(apiKey)}/json/getBusArrivalList/1/20/${CONFIG.arsId}`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.errorMessage && data.errorMessage.status !== 200) {
+          // Try alternative API name
+          const url2 = `${CONFIG.apiBase}/${encodeURIComponent(apiKey)}/json/GetBusArrivalList/1/20/${CONFIG.arsId}`;
+          const response2 = await fetch(url2);
+          if (!response2.ok) throw new Error(`HTTP ${response2.status}`);
+          const data2 = await response2.json();
+          handleResponse(data2);
+          return;
+        }
+
+        handleResponse(data);
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setStatus('error', '조회 실패 - ' + err.message);
+        showNoData('데이터를 불러올 수 없습니다.<br>API 키를 확인하거나 잠시 후 다시 시도해주세요.<br><br><small>CORS 오류 시 로컬 서버에서 실행하거나<br>브라우저 CORS 확장을 사용해주세요.</small>');
+      } finally {
+        $('refreshBtn').disabled = false;
+      }
+    }
+
+    function handleResponse(data) {
+      // Seoul Open Data API response structure
+      const key = Object.keys(data).find(k => k !== 'errorMessage') || Object.keys(data)[0];
+      const result = data[key] || data;
+
+      // Check for error
+      if (result.RESULT && result.RESULT.CODE !== 'INFO-000') {
+        setStatus('error', result.RESULT.MESSAGE || '오류 발생');
+        showNoData(result.RESULT.MESSAGE || '데이터를 조회할 수 없습니다.');
+        return;
+      }
+
+      const rows = result.row || result.ROW || result.msgBody?.itemList || [];
+
+      // Filter for 강남07
+      const gangnam07 = rows.filter(item => {
+        const name = item.rtNm || item.ROUTE_NM || item.busRouteNm || '';
+        return name.includes(CONFIG.busRouteName);
+      });
+
+      if (gangnam07.length === 0) {
+        // Show all buses for debugging, but indicate no 강남07 found
+        setStatus('error', '강남07 도착정보 없음');
+        showNoData('현재 강남07 버스 도착 예정 정보가 없습니다.<br>운행 시간이 아니거나 정류장 정보를 확인해주세요.');
+        return;
+      }
+
+      renderArrivals(gangnam07);
+      setStatus('ok', '실시간 업데이트 중');
+      startCountdown();
+
+      const now = new Date();
+      $('refreshTime').textContent = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} 갱신`;
+
+      // Update stop name from API data if available
+      const firstItem = gangnam07[0];
+      const stNm = firstItem.stNm || firstItem.STATION_NM || '';
+      if (stNm) {
+        $('stopName').textContent = stNm;
+      }
+    }
+
+    function renderArrivals(items) {
+      $('arrivalCard').style.display = 'block';
+      $('noData').style.display = 'none';
+
+      const list = $('arrivalList');
+      list.innerHTML = '';
+
+      items.forEach(item => {
+        // Parse arrival info
+        const msg1 = item.arrmsg1 || item.ARRIVEMSG1 || '';
+        const msg2 = item.arrmsg2 || item.ARRIVEMSG2 || '';
+        const time1 = item.exps1 || item.EXPS1 || 0; // seconds
+        const time2 = item.exps2 || item.EXPS2 || 0;
+        const vehId1 = item.vehId1 || item.VEHICLE_ID1 || '';
+        const vehId2 = item.vehId2 || item.VEHICLE_ID2 || '';
+        const stationNm = item.nxtStn || item.NEXT_STATION || '';
+        const congestion1 = item.reride_Num1 || '';
+        const congestion2 = item.reride_Num2 || '';
+        const isArrive1 = item.isArrive1 || '';
+        const isArrive2 = item.isArrive2 || '';
+        const busType = item.busType1 || '';
+
+        // First bus
+        list.appendChild(createArrivalRow('첫번째 버스', msg1, time1, stationNm, 1));
+
+        // Second bus
+        if (msg2 && msg2 !== '도착정보없음') {
+          const nxtStn2 = item.nxtStn2 || item.NEXT_STATION2 || '';
+          list.appendChild(createArrivalRow('두번째 버스', msg2, time2, nxtStn2, 2));
+        }
+      });
+    }
+
+    function createArrivalRow(label, message, seconds, nextStation, order) {
+      const div = document.createElement('div');
+      div.className = 'bus-arrival';
+
+      const minutes = Math.floor(seconds / 60);
+      const isSoon = minutes <= 3 && minutes > 0;
+      const isArriving = message.includes('곧 도착') || message.includes('도착예정');
+
+      let timeDisplay = '';
+      let timeClass = '';
+
+      if (isArriving || message.includes('곧 도착')) {
+        timeDisplay = `<span class="time-value">곧 도착</span>`;
+        timeClass = 'arriving';
+      } else if (seconds > 0) {
+        timeDisplay = `<span class="time-value">${minutes}</span><span class="time-unit">분</span>`;
+        timeClass = isSoon ? 'soon' : '';
+      }
+
+      const extraTags = [];
+      if (nextStation) {
+        extraTags.push(`<span class="tag">${nextStation} 부근</span>`);
+      }
+      if (message.includes('저상')) {
+        extraTags.push(`<span class="tag">저상버스</span>`);
+      }
+
+      div.innerHTML = `
+        <div class="bus-icon">${order === 1 ? '1' : '2'}</div>
+        <div class="bus-details">
+          <div class="bus-label">${label}</div>
+          <div class="bus-message">${sanitize(message)}</div>
+          ${extraTags.length ? `<div class="extra-info">${extraTags.join('')}</div>` : ''}
+        </div>
+        ${timeDisplay ? `<div class="arrival-time ${timeClass}">${timeDisplay}</div>` : ''}
+      `;
+
+      return div;
+    }
+
+    function sanitize(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function setStatus(type, text) {
+      const dot = $('statusDot');
+      dot.className = 'status-dot' + (type === 'error' ? ' error' : type === 'loading' ? ' loading' : '');
+      $('statusText').textContent = text;
+    }
+
+    function showNoData(msg) {
+      $('arrivalCard').style.display = 'none';
+      $('noData').style.display = 'block';
+      $('noDataMsg').innerHTML = msg;
+    }
+
+    // ── Start ──
+    init();
+  </script>
+</body>
+</html>
