@@ -183,13 +183,37 @@
     .repo-desc {
       font-size: 13px;
       color: var(--text-secondary);
-      margin-bottom: 10px;
+      margin-bottom: 4px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
       line-height: 1.5;
       padding-right: 36px;
+    }
+
+    .repo-desc-kr {
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.5;
+      padding-right: 36px;
+    }
+
+    .repo-desc-kr .translating {
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    .repo-desc-original {
+      font-size: 11px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      margin-bottom: 10px;
+      padding-right: 36px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .repo-meta {
@@ -415,6 +439,45 @@
       return String(n);
     }
 
+    // ── 번역 관련 ──
+    const translationCache = {};
+
+    function isKorean(text) {
+      if (!text) return true;
+      return /[가-힣]/.test(text) && !/^[a-zA-Z0-9\s\-_.,!?:;()\[\]{}'"\/\\@#$%^&*+=<>~`]+$/.test(text);
+    }
+
+    async function translateText(text) {
+      if (!text) return '';
+      if (isKorean(text)) return text;
+      if (translationCache[text]) return translationCache[text];
+
+      try {
+        const resp = await fetch(
+          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.substring(0, 500))}&langpair=autodetect|ko`
+        );
+        if (!resp.ok) return text;
+        const data = await resp.json();
+        const translated = data.responseData?.translatedText || text;
+        // MyMemory returns original text in uppercase when it fails
+        if (translated === text.toUpperCase()) return text;
+        translationCache[text] = translated;
+        return translated;
+      } catch {
+        return text;
+      }
+    }
+
+    async function translateRepoDescriptions(listEl, repos) {
+      const items = listEl.querySelectorAll('.repo-desc-kr');
+      await Promise.all(repos.slice(0, 5).map(async (repo, i) => {
+        if (!repo.description || !items[i]) return;
+        const el = items[i];
+        const translated = await translateText(repo.description);
+        el.innerHTML = sanitize(translated);
+      }));
+    }
+
     function renderRepos(listEl, repos) {
       if (!repos || repos.length === 0) {
         showError(listEl, '트렌딩 저장소를 찾을 수 없습니다.');
@@ -435,7 +498,8 @@
               <span class="slash">/</span>
               <span class="name">${sanitize(name)}</span>
             </div>
-            <div class="repo-desc">${sanitize(repo.description)}</div>
+            <div class="repo-desc-kr"><span class="translating">번역 중...</span></div>
+            <div class="repo-desc-original">${sanitize(repo.description)}</div>
             <div class="repo-meta">
               ${repo.language ? `<span class="meta-item">
                 <span class="lang-dot" style="background:${langColor}"></span>
@@ -456,6 +520,9 @@
           </a>
         </li>`;
       }).join('');
+
+      // 비동기로 번역 시작
+      translateRepoDescriptions(listEl, repos);
     }
 
     async function fetchTrending(since) {
