@@ -1,0 +1,22 @@
+{
+  "name": "계산기",
+  "short_name": "계산기",
+  "description": "iPhone 스타일 계산기 앱",
+  "start_url": "calculator.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
