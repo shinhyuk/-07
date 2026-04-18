@@ -5,5 +5,10 @@
     "max_pages": 0,
     "delay_between_requests": 1.5,
     "output_format": "both",
-    "output_dir": "output"
+    "output_dir": "output",
+
+    "enable_ai_analysis": false,
+    "anthropic_api_key": "",
+    "ai_model": "claude-sonnet-4-20250514",
+    "ai_delay": 1.0
 }

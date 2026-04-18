@@ -2,6 +2,7 @@
 잡코리아 채용공고 크롤러
 - 키워드 기반 채용공고 수집
 - 상세 페이지 파싱
+- Claude API 기반 스킬 자동 추정
 - CSV/JSON 저장
 """
 
@@ -44,6 +45,18 @@ class JobPosting:
     industry: str = ""
     posted_date: str = ""
     scraped_at: str = ""
+    # Claude API 스킬 분석 결과
+    ai_hard_skills: list = field(default_factory=list)
+    ai_soft_skills: list = field(default_factory=list)
+    ai_tools: list = field(default_factory=list)
+    ai_frameworks: list = field(default_factory=list)
+    ai_languages: list = field(default_factory=list)
+    ai_certifications: list = field(default_factory=list)
+    ai_experience_level: str = ""
+    ai_difficulty_score: int = 0
+    ai_role_category: str = ""
+    ai_salary_estimate: str = ""
+    ai_summary: str = ""
 
 
 class JobKoreaCrawler:
@@ -358,7 +371,51 @@ class JobKoreaCrawler:
             self.results.append(posting)
 
         log.info(f"크롤링 완료! 총 {len(self.results)}개 채용공고 수집")
+
+        # Claude API 스킬 분석
+        if self.config.get("enable_ai_analysis", False):
+            self._run_skill_analysis()
+
         self._save()
+
+    def _run_skill_analysis(self):
+        """Claude API로 각 공고의 스킬을 분석"""
+        from skill_analyzer import SkillAnalyzer, SkillAnalysis
+        from dataclasses import asdict as _asdict
+
+        api_key = self.config.get("anthropic_api_key") or os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            log.error("ANTHROPIC_API_KEY가 설정되지 않았습니다. 스킬 분석을 건너뜁니다.")
+            log.error("config.json에 'anthropic_api_key'를 추가하거나 환경변수 ANTHROPIC_API_KEY를 설정하세요.")
+            return
+
+        model = self.config.get("ai_model", "claude-sonnet-4-20250514")
+        analyzer = SkillAnalyzer(api_key=api_key, model=model)
+
+        log.info("=" * 60)
+        log.info("Claude API 스킬 분석 시작")
+        log.info(f"모델: {model}")
+        log.info(f"분석 대상: {len(self.results)}개 공고")
+        log.info("=" * 60)
+
+        ai_delay = self.config.get("ai_delay", 1.0)
+        jobs_data = [{"title": j.title, "company": j.company, "description": j.description} for j in self.results]
+        analyses = analyzer.analyze_batch(jobs_data, delay=ai_delay)
+
+        for posting, analysis in zip(self.results, analyses):
+            posting.ai_hard_skills = analysis.hard_skills
+            posting.ai_soft_skills = analysis.soft_skills
+            posting.ai_tools = analysis.tools
+            posting.ai_frameworks = analysis.frameworks
+            posting.ai_languages = analysis.languages
+            posting.ai_certifications = analysis.certifications
+            posting.ai_experience_level = analysis.experience_level
+            posting.ai_difficulty_score = analysis.difficulty_score
+            posting.ai_role_category = analysis.role_category
+            posting.ai_salary_estimate = analysis.salary_estimate
+            posting.ai_summary = analysis.summary
+
+        log.info(f"스킬 분석 완료! (API 호출: {analyzer.request_count}회)")
 
     def _save(self):
         """결과 저장"""
@@ -380,6 +437,10 @@ class JobKoreaCrawler:
             "title", "company", "location", "experience", "education",
             "employment_type", "salary", "deadline", "skills",
             "url", "industry", "posted_date", "scraped_at",
+            "ai_hard_skills", "ai_soft_skills", "ai_tools", "ai_frameworks",
+            "ai_languages", "ai_certifications", "ai_experience_level",
+            "ai_difficulty_score", "ai_role_category", "ai_salary_estimate",
+            "ai_summary",
         ]
 
         with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
@@ -388,6 +449,9 @@ class JobKoreaCrawler:
             for job in self.results:
                 row = asdict(job)
                 row["skills"] = ", ".join(row["skills"])
+                for list_field in ["ai_hard_skills", "ai_soft_skills", "ai_tools",
+                                   "ai_frameworks", "ai_languages", "ai_certifications"]:
+                    row[list_field] = ", ".join(row[list_field])
                 row.pop("description", None)
                 writer.writerow(row)
 
@@ -415,6 +479,9 @@ def main():
     parser.add_argument("-d", "--delay", type=float, default=1.5, help="요청 간 대기 시간(초)")
     parser.add_argument("-o", "--output", choices=["csv", "json", "both"], default="both", help="출력 형식")
     parser.add_argument("-c", "--config", default="config.json", help="설정 파일 경로")
+    parser.add_argument("--ai", action="store_true", help="Claude API 스킬 분석 활성화")
+    parser.add_argument("--ai-model", default=None, help="Claude 모델 (기본: claude-sonnet-4-20250514)")
+    parser.add_argument("--ai-delay", type=float, default=1.0, help="AI API 호출 간 대기 시간(초)")
     args = parser.parse_args()
 
     crawler = JobKoreaCrawler(config_path=args.config)
@@ -427,6 +494,12 @@ def main():
         crawler.config["delay_between_requests"] = args.delay
     if args.output:
         crawler.config["output_format"] = args.output
+    if args.ai:
+        crawler.config["enable_ai_analysis"] = True
+    if args.ai_model:
+        crawler.config["ai_model"] = args.ai_model
+    if args.ai_delay:
+        crawler.config["ai_delay"] = args.ai_delay
 
     crawler.crawl()
 
