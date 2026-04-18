@@ -1,0 +1,9 @@
+{
+    "search_keywords": ["python", "백엔드", "프론트엔드", "데이터"],
+    "location": "",
+    "career_type": "",
+    "max_pages": 0,
+    "delay_between_requests": 1.5,
+    "output_format": "both",
+    "output_dir": "output"
+}
