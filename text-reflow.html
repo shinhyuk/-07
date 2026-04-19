@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Text Reflow Lab</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Space+Mono&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #faf8f5;
+      color: #1a1a1a;
+      font-family: 'Noto Serif KR', serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    #app { width: 100%; min-height: 100vh; }
+
+    .toolbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(250, 248, 245, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #e0ddd8;
+      padding: 10px 24px;
+      display: flex; align-items: center; gap: 16px;
+      font-family: 'Space Mono', monospace; font-size: 12px;
+    }
+
+    .toolbar .title {
+      font-family: 'Noto Serif KR', serif;
+      font-weight: 700; font-size: 16px; margin-right: auto;
+    }
+
+    .toolbar button {
+      padding: 6px 14px; border: 1px solid #ccc; border-radius: 6px;
+      background: #fff; cursor: pointer; font-family: 'Space Mono', monospace;
+      font-size: 11px; transition: all 0.15s;
+    }
+    .toolbar button:hover { background: #1a1a1a; color: #fff; }
+    .toolbar button.active { background: #1a1a1a; color: #fff; }
+
+    .toolbar .info {
+      color: #888; font-size: 11px;
+    }
+
+    .page-container {
+      max-width: 900px; margin: 0 auto;
+      padding: 80px 40px 60px;
+    }
+
+    .text-area {
+      position: relative;
+      line-height: 1.9;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      min-height: 80vh;
+    }
+
+    .word {
+      display: inline;
+      transition: opacity 0.15s;
+    }
+
+    .word-space { display: inline; }
+
+    /* Draggable objects */
+    .drag-obj {
+      position: absolute;
+      cursor: grab;
+      z-index: 10;
+      transition: box-shadow 0.2s;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px; color: rgba(255,255,255,0.8);
+      user-select: none; -webkit-user-select: none;
+    }
+    .drag-obj:active { cursor: grabbing; }
+    .drag-obj:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+
+    .drag-obj.circle { border-radius: 50%; }
+    .drag-obj.rounded { border-radius: 16px; }
+
+    .shape-label {
+      position: absolute; bottom: -20px; left: 50%;
+      transform: translateX(-50%); white-space: nowrap;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px; color: #aaa;
+    }
+
+    /* Float shims for text wrapping */
+    .float-shim-left {
+      float: left; clear: left;
+      shape-margin: 16px;
+    }
+    .float-shim-right {
+      float: right; clear: right;
+      shape-margin: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { h, render, Component } from 'https://esm.sh/preact@10.22.1';
+    import { useState, useEffect, useRef, useCallback, useMemo } from 'https://esm.sh/preact@10.22.1/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+    const html = htm.bind(h);
+
+    const BOOK_TEXT = `디자인이란 단순히 어떻게 보이고 어떤 느낌을 주는가가 아니다. 디자인은 어떻게 작동하는가이다. 우리가 만드는 모든 것에는 의도가 담겨 있으며, 그 의도는 사용자의 경험을 통해 완성된다. 좋은 디자인은 가능한 한 적게 디자인하는 것이다. 적을수록 좋다. 왜냐하면 본질적인 측면에 집중하기 때문이다. 불필요한 것으로 제품에 부담을 주지 않는다. 순수함으로, 단순함으로 돌아가라. 타이포그래피는 글자의 예술이다. 활자의 배열을 통해 언어를 시각적으로 표현하는 것이며, 읽는 이에게 의미를 전달하는 동시에 아름다움을 선사한다. 좋은 타이포그래피는 보이지 않는다. 그것은 읽히는 것이다. 독자가 글자 자체를 의식하지 않고 내용에 몰입할 때, 타이포그래피는 성공한 것이다. 반면 나쁜 타이포그래피는 독자의 시선을 방해하고, 읽기를 불편하게 만든다. 공간은 디자인에서 가장 과소평가되는 요소 중 하나이다. 여백은 빈 공간이 아니라, 콘텐츠에 숨 쉴 공간을 제공하는 적극적인 디자인 요소이다. 적절한 여백은 시각적 계층 구조를 만들고, 독자의 눈을 안내하며, 전체적인 조화를 이룬다. 색채는 감정을 전달하는 가장 즉각적인 도구이다. 따뜻한 색조는 에너지와 열정을, 차가운 색조는 신뢰와 평온을 나타낸다. 그러나 색의 의미는 문화마다 다르며, 맥락에 따라 완전히 달라질 수 있다. 훌륭한 디자이너는 색의 심리학을 이해하고, 의도에 맞게 활용한다. 그리드 시스템은 현대 디자인의 근간이다. 규칙적인 구조 위에 요소를 배치함으로써 일관성과 질서를 부여한다. 하지만 그리드는 제약이 아닌 도구이다. 때로는 그리드를 깨뜨리는 것이 더 강력한 시각적 효과를 만든다. 규칙을 알아야 규칙을 깰 수 있다. 인터랙션 디자인은 사용자와 제품 사이의 대화를 설계하는 것이다. 클릭, 스와이프, 스크롤 같은 동작 하나하나가 사용자에게 의미를 전달한다. 좋은 인터랙션은 직관적이고 예측 가능하며, 사용자에게 통제감을 준다. 모션 디자인은 정적인 화면에 생명을 불어넣는다. 움직임은 주의를 끌고, 관계를 설명하며, 피드백을 제공한다. 그러나 과도한 애니메이션은 오히려 사용자를 산만하게 만든다. 목적 없는 움직임은 소음일 뿐이다. 접근성은 선택이 아닌 의무이다. 모든 사용자가 제품을 동등하게 이용할 수 있어야 한다. 시각, 청각, 운동 능력에 관계없이 정보에 접근할 수 있도록 설계하는 것은 윤리적 책임이다. 접근성을 고려한 디자인은 궁극적으로 모든 사용자의 경험을 향상시킨다. 반응형 디자인은 다양한 화면 크기에 적응하는 유연한 레이아웃을 만드는 것이다. 모바일, 태블릿, 데스크탑 어디에서든 콘텐츠가 최적의 형태로 표현되어야 한다. 이는 단순한 크기 조절이 아니라, 각 환경에 맞는 최적의 경험을 제공하는 것이다. 지금 이 텍스트는 실시간으로 물체의 위치에 따라 재배치되고 있다. 물체를 드래그하여 움직여 보라. 글자들이 물체를 피해 자연스럽게 흐르는 것을 볼 수 있다. 이것이 바로 텍스트 리플로우의 힘이다. 프리텍스트에서 영감을 받은 이 데모는 텍스트와 오브젝트의 공존을 보여준다.`;
+
+    const OBJECTS_INIT = [
+      { id: 'obj1', x: 180, y: 120, w: 140, h: 140, color: '#4a6cf7', shape: 'circle', label: 'DRAG ME' },
+      { id: 'obj2', x: 550, y: 300, w: 160, h: 100, color: '#f76a8c', shape: 'rounded', label: 'MOVE' },
+      { id: 'obj3', x: 300, y: 520, w: 120, h: 120, color: '#2dd4a8', shape: 'circle', label: 'INTERACT' },
+      { id: 'obj4', x: 650, y: 680, w: 100, h: 100, color: '#ffa940', shape: 'rounded', label: 'RESIZE' },
+    ];
+
+    function App() {
+      const [objects, setObjects] = useState(OBJECTS_INIT);
+      const [autoMove, setAutoMove] = useState(false);
+      const [darkMode, setDarkMode] = useState(false);
+      const dragRef = useRef(null);
+      const containerRef = useRef(null);
+      const autoRef = useRef(false);
+      const timeRef = useRef(0);
+
+      const words = useMemo(() => BOOK_TEXT.split(/\s+/).filter(Boolean), []);
+
+      // Auto-move animation
+      useEffect(() => {
+        autoRef.current = autoMove;
+        if (!autoMove) return;
+        let raf;
+        const basePositions = objects.map(o => ({ x: o.x, y: o.y }));
+
+        function tick() {
+          if (!autoRef.current) return;
+          timeRef.current += 0.015;
+          const t = timeRef.current;
+
+          setObjects(prev => prev.map((obj, i) => ({
+            ...obj,
+            x: basePositions[i].x + Math.sin(t * (0.5 + i * 0.3)) * (60 + i * 20),
+            y: basePositions[i].y + Math.cos(t * (0.4 + i * 0.2)) * (40 + i * 15),
+          })));
+          raf = requestAnimationFrame(tick);
+        }
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+      }, [autoMove]);
+
+      // Drag handlers
+      const onPointerDown = useCallback((e, id) => {
+        if (autoMove) return;
+        e.preventDefault();
+        const obj = objects.find(o => o.id === id);
+        if (!obj) return;
+        const rect = containerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+        dragRef.current = {
+          id,
+          offsetX: e.clientX - (obj.x + rect.left),
+          offsetY: e.clientY - (obj.y + rect.top),
+          rect,
+        };
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+      }, [objects, autoMove]);
+
+      const onPointerMove = useCallback((e) => {
+        if (!dragRef.current) return;
+        const { id, offsetX, offsetY, rect } = dragRef.current;
+        const nx = e.clientX - offsetX - rect.left;
+        const ny = e.clientY - offsetY - rect.top;
+        setObjects(prev => prev.map(o => o.id === id ? { ...o, x: nx, y: ny } : o));
+      }, []);
+
+      const onPointerUp = useCallback(() => {
+        dragRef.current = null;
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+      }, []);
+
+      const resetPositions = useCallback(() => {
+        setAutoMove(false);
+        setObjects(OBJECTS_INIT);
+        timeRef.current = 0;
+      }, []);
+
+      // Build float shims for text wrapping
+      const shims = useMemo(() => {
+        return objects.map(obj => {
+          const pad = 20;
+          const totalW = obj.w + pad * 2;
+          const totalH = obj.h + pad * 2;
+          const left = obj.x - pad;
+          const isLeftSide = obj.x + obj.w / 2 < 450;
+
+          if (obj.shape === 'circle') {
+            const r = totalW / 2;
+            return {
+              id: obj.id,
+              float: isLeftSide ? 'left' : 'right',
+              width: totalW,
+              height: totalH,
+              marginTop: Math.max(0, obj.y - pad),
+              marginLeft: isLeftSide ? left : 0,
+              marginRight: isLeftSide ? 0 : Math.max(0, 900 - 80 - obj.x - obj.w - pad),
+              shapeOutside: `circle(${r}px at ${r}px ${r}px)`,
+            };
+          } else {
+            return {
+              id: obj.id,
+              float: isLeftSide ? 'left' : 'right',
+              width: totalW,
+              height: totalH,
+              marginTop: Math.max(0, obj.y - pad),
+              marginLeft: isLeftSide ? left : 0,
+              marginRight: isLeftSide ? 0 : Math.max(0, 900 - 80 - obj.x - obj.w - pad),
+              shapeOutside: `inset(0 round 16px)`,
+            };
+          }
+        }).sort((a, b) => a.marginTop - b.marginTop);
+      }, [objects]);
+
+      const bgStyle = darkMode
+        ? { background: '#0f0f13', color: '#d4d0c8' }
+        : { background: '#faf8f5', color: '#1a1a1a' };
+
+      const toolbarBg = darkMode
+        ? { background: 'rgba(15,15,19,0.92)', borderColor: '#2a2a30' }
+        : { background: 'rgba(250,248,245,0.92)', borderColor: '#e0ddd8' };
+
+      return html`
+        <div style=${bgStyle}>
+          <div class="toolbar" style=${toolbarBg}>
+            <span class="title">Text Reflow Lab</span>
+            <button class=${autoMove ? 'active' : ''} onClick=${() => setAutoMove(!autoMove)}>
+              ${autoMove ? '■ STOP' : '▶ AUTO MOVE'}
+            </button>
+            <button onClick=${resetPositions}>↺ RESET</button>
+            <button class=${darkMode ? 'active' : ''} onClick=${() => setDarkMode(!darkMode)}>
+              ${darkMode ? '☀ LIGHT' : '● DARK'}
+            </button>
+            <span class="info">OBJECTS: ${objects.length}</span>
+          </div>
+
+          <div class="page-container" ref=${containerRef}>
+            <div class="text-area">
+              ${shims.map(s => html`
+                <div
+                  key=${'shim-' + s.id}
+                  class=${s.float === 'left' ? 'float-shim-left' : 'float-shim-right'}
+                  style=${{
+                    width: s.width + 'px',
+                    height: s.height + 'px',
+                    marginTop: s.marginTop + 'px',
+                    marginLeft: s.float === 'left' ? s.marginLeft + 'px' : '0',
+                    marginRight: s.float === 'right' ? s.marginRight + 'px' : '0',
+                    shapeOutside: s.shapeOutside,
+                  }}
+                />
+              `)}
+
+              ${objects.map(obj => html`
+                <div
+                  key=${obj.id}
+                  class="drag-obj ${obj.shape}"
+                  onPointerDown=${(e) => onPointerDown(e, obj.id)}
+                  style=${{
+                    left: obj.x + 'px',
+                    top: obj.y + 'px',
+                    width: obj.w + 'px',
+                    height: obj.h + 'px',
+                    background: obj.color,
+                    boxShadow: '0 4px 20px ' + obj.color + '44',
+                    touchAction: 'none',
+                  }}
+                >
+                  ${obj.label}
+                  <span class="shape-label" style=${{ color: darkMode ? '#666' : '#aaa' }}>
+                    ${Math.round(obj.x)}, ${Math.round(obj.y)}
+                  </span>
+                </div>
+              `)}
+
+              ${words.map((word, i) => html`<span class="word" key=${i}>${word} </span>`)}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    render(html`<${App} />`, document.getElementById('app'));
+  </script>
+</body>
+</html>
