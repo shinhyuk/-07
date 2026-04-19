@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="계산기">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <title>계산기</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    /* Display */
+    .display {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      padding: 0 24px 12px;
+      min-height: 120px;
+      overflow: hidden;
+    }
+
+    .display .expression {
+      font-size: 20px;
+      color: #888;
+      margin-bottom: 4px;
+      min-height: 24px;
+      text-align: right;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .display .result {
+      font-size: 80px;
+      font-weight: 300;
+      line-height: 1;
+      text-align: right;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: font-size 0.1s ease;
+    }
+
+    .display .result.small {
+      font-size: 56px;
+    }
+
+    .display .result.smaller {
+      font-size: 40px;
+    }
+
+    /* Button Grid */
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 0 12px 12px;
+    }
+
+    .btn {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: none;
+      font-size: 32px;
+      font-weight: 400;
+      font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: filter 0.1s;
+      -webkit-appearance: none;
+      appearance: none;
+      outline: none;
+    }
+
+    .btn:active {
+      filter: brightness(1.5);
+    }
+
+    /* Button types */
+    .btn-number {
+      background: #333;
+      color: #fff;
+    }
+
+    .btn-operator {
+      background: #ff9f0a;
+      color: #fff;
+    }
+
+    .btn-operator.active {
+      background: #fff;
+      color: #ff9f0a;
+    }
+
+    .btn-function {
+      background: #a5a5a5;
+      color: #000;
+      font-size: 28px;
+    }
+
+    .btn-zero {
+      grid-column: span 2;
+      border-radius: 100px;
+      aspect-ratio: auto;
+      padding: 0 28px;
+      justify-content: flex-start;
+      height: auto;
+    }
+
+    /* Landscape mode - Scientific calculator */
+    @media (orientation: landscape) and (max-height: 500px) {
+      .buttons {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        padding: 0 8px 8px;
+      }
+
+      .btn {
+        aspect-ratio: auto;
+        border-radius: 36px;
+        font-size: 24px;
+        padding: 12px;
+      }
+
+      .display .result {
+        font-size: 48px;
+      }
+
+      .display {
+        min-height: 60px;
+        padding: 0 16px 8px;
+      }
+    }
+
+    /* Responsive sizing */
+    @media (max-width: 380px) {
+      .buttons { gap: 10px; padding: 0 10px 10px; }
+      .btn { font-size: 28px; }
+      .display .result { font-size: 64px; }
+    }
+
+    @media (min-width: 500px) {
+      body {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="display">
+    <div class="expression" id="expression"></div>
+    <div class="result" id="display">0</div>
+  </div>
+
+  <div class="buttons">
+    <!-- Row 1: AC, +/-, %, ÷ -->
+    <button class="btn btn-function" data-action="clear">AC</button>
+    <button class="btn btn-function" data-action="negate">+/−</button>
+    <button class="btn btn-function" data-action="percent">%</button>
+    <button class="btn btn-operator" data-action="operator" data-value="÷">÷</button>
+
+    <!-- Row 2: 7, 8, 9, × -->
+    <button class="btn btn-number" data-action="number" data-value="7">7</button>
+    <button class="btn btn-number" data-action="number" data-value="8">8</button>
+    <button class="btn btn-number" data-action="number" data-value="9">9</button>
+    <button class="btn btn-operator" data-action="operator" data-value="×">×</button>
+
+    <!-- Row 3: 4, 5, 6, − -->
+    <button class="btn btn-number" data-action="number" data-value="4">4</button>
+    <button class="btn btn-number" data-action="number" data-value="5">5</button>
+    <button class="btn btn-number" data-action="number" data-value="6">6</button>
+    <button class="btn btn-operator" data-action="operator" data-value="−">−</button>
+
+    <!-- Row 4: 1, 2, 3, + -->
+    <button class="btn btn-number" data-action="number" data-value="1">1</button>
+    <button class="btn btn-number" data-action="number" data-value="2">2</button>
+    <button class="btn btn-number" data-action="number" data-value="3">3</button>
+    <button class="btn btn-operator" data-action="operator" data-value="+">+</button>
+
+    <!-- Row 5: 0, ., = -->
+    <button class="btn btn-number btn-zero" data-action="number" data-value="0">0</button>
+    <button class="btn btn-number" data-action="decimal">.</button>
+    <button class="btn btn-operator" data-action="equals">=</button>
+  </div>
+
+  <script>
+    // ── Calculator State ──
+    let currentInput = '0';
+    let previousInput = '';
+    let operator = null;
+    let shouldResetDisplay = false;
+    let lastResult = null;
+    let lastOperator = null;
+    let lastOperand = null;
+    let expressionStr = '';
+
+    const display = document.getElementById('display');
+    const expression = document.getElementById('expression');
+
+    // ── Display Update ──
+    function updateDisplay() {
+      let formatted = formatNumber(currentInput);
+      display.textContent = formatted;
+
+      // Adjust font size based on length
+      display.classList.remove('small', 'smaller');
+      if (formatted.length > 12) {
+        display.classList.add('smaller');
+      } else if (formatted.length > 8) {
+        display.classList.add('small');
+      }
+
+      // Update AC/C button
+      const clearBtn = document.querySelector('[data-action="clear"]');
+      clearBtn.textContent = currentInput === '0' && !operator ? 'AC' : 'C';
+    }
+
+    function formatNumber(numStr) {
+      if (numStr === 'Error') return 'Error';
+
+      // If the user is still typing (contains trailing dot or is being input)
+      if (numStr.includes('.')) {
+        const parts = numStr.split('.');
+        const intPart = parseFloat(parts[0]) || 0;
+        const formatted = intPart.toLocaleString('en-US');
+        return formatted + '.' + parts[1];
+      }
+
+      const num = parseFloat(numStr);
+      if (isNaN(num)) return '0';
+      if (!isFinite(num)) return 'Error';
+
+      // For very large or very small numbers
+      if (Math.abs(num) >= 1e15) {
+        return num.toExponential(5);
+      }
+
+      return num.toLocaleString('en-US', { maximumFractionDigits: 10 });
+    }
+
+    function updateExpression() {
+      expression.textContent = expressionStr;
+    }
+
+    // ── Input Handlers ──
+    function inputNumber(value) {
+      // Remove active state from operator buttons
+      if (shouldResetDisplay) {
+        clearActiveOperator();
+      }
+
+      if (shouldResetDisplay) {
+        currentInput = value;
+        shouldResetDisplay = false;
+      } else {
+        // Limit input length
+        const rawDigits = currentInput.replace(/[^0-9]/g, '');
+        if (rawDigits.length >= 9 && value !== '.') return;
+
+        if (currentInput === '0' && value !== '.') {
+          currentInput = value;
+        } else {
+          currentInput += value;
+        }
+      }
+      updateDisplay();
+    }
+
+    function inputDecimal() {
+      clearActiveOperator();
+
+      if (shouldResetDisplay) {
+        currentInput = '0.';
+        shouldResetDisplay = false;
+      } else if (!currentInput.includes('.')) {
+        currentInput += '.';
+      }
+      updateDisplay();
+    }
+
+    function inputOperator(op) {
+      // Set active state on operator button
+      clearActiveOperator();
+      const opBtns = document.querySelectorAll('[data-action="operator"]');
+      opBtns.forEach(btn => {
+        if (btn.dataset.value === op) btn.classList.add('active');
+      });
+
+      if (operator && !shouldResetDisplay) {
+        // Chain operations
+        calculate();
+      } else if (lastResult !== null && shouldResetDisplay) {
+        currentInput = String(lastResult);
+      }
+
+      previousInput = currentInput;
+      operator = op;
+      expressionStr = formatNumber(previousInput) + ' ' + op;
+      updateExpression();
+      shouldResetDisplay = true;
+      lastOperator = null;
+      lastOperand = null;
+    }
+
+    function calculate() {
+      let result;
+      let a, b;
+
+      if (lastOperator && !operator) {
+        // Repeat last operation
+        a = parseFloat(currentInput);
+        b = lastOperand;
+        result = compute(a, lastOperator, b);
+        expressionStr = formatNumber(String(a)) + ' ' + lastOperator + ' ' + formatNumber(String(b)) + ' =';
+      } else if (operator) {
+        a = parseFloat(previousInput);
+        b = parseFloat(currentInput);
+        lastOperator = operator;
+        lastOperand = b;
+        result = compute(a, operator, b);
+        expressionStr = formatNumber(previousInput) + ' ' + operator + ' ' + formatNumber(currentInput) + ' =';
+      } else {
+        return;
+      }
+
+      updateExpression();
+
+      if (!isFinite(result)) {
+        currentInput = 'Error';
+      } else {
+        // Remove trailing zeros
+        currentInput = String(parseFloat(result.toPrecision(10)));
+      }
+
+      lastResult = parseFloat(currentInput);
+      operator = null;
+      previousInput = '';
+      shouldResetDisplay = true;
+      clearActiveOperator();
+      updateDisplay();
+    }
+
+    function compute(a, op, b) {
+      switch (op) {
+        case '+': return a + b;
+        case '−': return a - b;
+        case '×': return a * b;
+        case '÷': return b === 0 ? Infinity : a / b;
+        default: return b;
+      }
+    }
+
+    function clearAll() {
+      if (currentInput === '0' && !operator) {
+        // AC: Full reset
+        previousInput = '';
+        lastResult = null;
+        lastOperator = null;
+        lastOperand = null;
+        expressionStr = '';
+        updateExpression();
+      }
+      currentInput = '0';
+      operator = null;
+      shouldResetDisplay = false;
+      clearActiveOperator();
+      updateDisplay();
+    }
+
+    function toggleNegate() {
+      if (currentInput === '0' || currentInput === 'Error') return;
+
+      if (currentInput.startsWith('-')) {
+        currentInput = currentInput.slice(1);
+      } else {
+        currentInput = '-' + currentInput;
+      }
+      updateDisplay();
+    }
+
+    function inputPercent() {
+      const num = parseFloat(currentInput);
+      if (isNaN(num)) return;
+      currentInput = String(parseFloat((num / 100).toPrecision(10)));
+      updateDisplay();
+    }
+
+    function clearActiveOperator() {
+      document.querySelectorAll('.btn-operator').forEach(btn => {
+        btn.classList.remove('active');
+      });
+    }
+
+    // ── Event Listeners ──
+    document.querySelector('.buttons').addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn');
+      if (!btn) return;
+
+      // Haptic feedback (if available)
+      if (navigator.vibrate) navigator.vibrate(1);
+
+      const action = btn.dataset.action;
+      const value = btn.dataset.value;
+
+      switch (action) {
+        case 'number':
+          inputNumber(value);
+          break;
+        case 'decimal':
+          inputDecimal();
+          break;
+        case 'operator':
+          inputOperator(value);
+          break;
+        case 'equals':
+          calculate();
+          break;
+        case 'clear':
+          clearAll();
+          break;
+        case 'negate':
+          toggleNegate();
+          break;
+        case 'percent':
+          inputPercent();
+          break;
+      }
+    });
+
+    // ── Keyboard Support ──
+    document.addEventListener('keydown', (e) => {
+      const key = e.key;
+
+      if (key >= '0' && key <= '9') {
+        inputNumber(key);
+      } else if (key === '.') {
+        inputDecimal();
+      } else if (key === '+') {
+        inputOperator('+');
+      } else if (key === '-') {
+        inputOperator('−');
+      } else if (key === '*') {
+        inputOperator('×');
+      } else if (key === '/') {
+        e.preventDefault();
+        inputOperator('÷');
+      } else if (key === 'Enter' || key === '=') {
+        calculate();
+      } else if (key === 'Escape') {
+        clearAll();
+      } else if (key === '%') {
+        inputPercent();
+      } else if (key === 'Backspace') {
+        if (!shouldResetDisplay && currentInput !== '0') {
+          currentInput = currentInput.slice(0, -1) || '0';
+          updateDisplay();
+        }
+      }
+    });
+
+    // ── Prevent zoom on double tap ──
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+
+    // ── Register Service Worker ──
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    // Initial display
+    updateDisplay();
+  </script>
+</body>
+</html>
