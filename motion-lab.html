@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Interactive Motion Lab</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Space+Mono:wght@400;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0f;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .canvas-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    .scene {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Floating object base */
+    .float-obj {
+      position: absolute;
+      will-change: transform;
+      transition: filter 0.3s;
+    }
+
+    .float-obj:hover {
+      filter: brightness(1.4) drop-shadow(0 0 20px currentColor);
+    }
+
+    /* Shapes */
+    .shape-circle {
+      border-radius: 50%;
+    }
+
+    .shape-ring {
+      border-radius: 50%;
+      background: transparent !important;
+      border: 3px solid;
+    }
+
+    .shape-square {
+      border-radius: 8px;
+    }
+
+    .shape-diamond {
+      border-radius: 4px;
+      transform: rotate(45deg);
+    }
+
+    .shape-triangle {
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent !important;
+      border-left: 30px solid transparent;
+      border-right: 30px solid transparent;
+      border-bottom: 52px solid;
+    }
+
+    .shape-hexagon {
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    .shape-cross {
+      clip-path: polygon(35% 0%, 65% 0%, 65% 35%, 100% 35%, 100% 65%, 65% 65%, 65% 100%, 35% 100%, 35% 65%, 0% 65%, 0% 35%, 35% 35%);
+    }
+
+    /* Text elements */
+    .float-text {
+      position: absolute;
+      will-change: transform;
+      white-space: nowrap;
+      pointer-events: none;
+      text-shadow: 0 0 30px currentColor;
+    }
+
+    .text-hero {
+      font-size: clamp(48px, 8vw, 120px);
+      font-weight: 900;
+      letter-spacing: -3px;
+      line-height: 1;
+    }
+
+    .text-sub {
+      font-size: clamp(18px, 3vw, 36px);
+      font-weight: 300;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+    }
+
+    .text-code {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(12px, 1.5vw, 18px);
+      opacity: 0.6;
+    }
+
+    .text-label {
+      font-size: clamp(10px, 1.2vw, 14px);
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .text-large {
+      font-size: clamp(60px, 12vw, 180px);
+      font-weight: 900;
+      opacity: 0.06;
+      letter-spacing: -5px;
+    }
+
+    /* Mouse follower */
+    .cursor-follower {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100;
+      will-change: transform;
+    }
+
+    .cursor-ring {
+      width: 40px;
+      height: 40px;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .cursor-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Info panel */
+    .info-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 50;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      line-height: 1.8;
+      pointer-events: none;
+    }
+
+    .info-panel .val {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Connection lines */
+    .connections {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gradient-text-2 {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ffd86f 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gradient-text-3 {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Glow pulse */
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    .pulse {
+      animation: glow-pulse 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { h, render, Component } from 'https://esm.sh/preact@10.22.1';
+    import { useState, useEffect, useRef, useCallback, useMemo } from 'https://esm.sh/preact@10.22.1/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+
+    const html = htm.bind(h);
+
+    // ── Physics helpers ──
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function dist(x1, y1, x2, y2) { return Math.sqrt((x2-x1)**2 + (y2-y1)**2); }
+
+    // ── Color palette ──
+    const COLORS = [
+      '#667eea', '#764ba2', '#f093fb', '#f5576c', '#ffd86f',
+      '#4facfe', '#00f2fe', '#43e97b', '#fa709a', '#fee140',
+      '#a18cd1', '#fbc2eb', '#84fab0', '#8fd3f4', '#cfd9df',
+    ];
+
+    // ── Scene objects config ──
+    function createSceneObjects(w, h) {
+      return [
+        // Shapes
+        { id: 's1', type: 'shape', shape: 'circle', size: 60, color: COLORS[0], x: w*0.15, y: h*0.3, vx: 0.8, vy: 0.5, orbit: false, parallax: 0.03 },
+        { id: 's2', type: 'shape', shape: 'ring', size: 80, color: COLORS[1], x: w*0.75, y: h*0.2, vx: -0.5, vy: 0.7, orbit: false, parallax: 0.05 },
+        { id: 's3', type: 'shape', shape: 'square', size: 40, color: COLORS[3], x: w*0.6, y: h*0.7, vx: 0.6, vy: -0.4, orbit: false, parallax: 0.02, spin: 0.5 },
+        { id: 's4', type: 'shape', shape: 'diamond', size: 35, color: COLORS[4], x: w*0.3, y: h*0.8, vx: -0.3, vy: -0.6, orbit: false, parallax: 0.04, spin: -0.3 },
+        { id: 's5', type: 'shape', shape: 'hexagon', size: 50, color: COLORS[5], x: w*0.85, y: h*0.55, vx: -0.7, vy: 0.3, orbit: false, parallax: 0.06 },
+        { id: 's6', type: 'shape', shape: 'circle', size: 25, color: COLORS[6], x: w*0.45, y: h*0.15, vx: 1.0, vy: 0.2, orbit: false, parallax: 0.03 },
+        { id: 's7', type: 'shape', shape: 'ring', size: 120, color: COLORS[2], x: w*0.5, y: h*0.5, vx: 0.2, vy: -0.2, orbit: false, parallax: 0.01 },
+        { id: 's8', type: 'shape', shape: 'cross', size: 45, color: COLORS[8], x: w*0.2, y: h*0.6, vx: 0.4, vy: 0.8, orbit: false, parallax: 0.04, spin: 0.8 },
+        { id: 's9', type: 'shape', shape: 'circle', size: 15, color: COLORS[9], x: w*0.9, y: h*0.85, vx: -0.9, vy: -0.5, orbit: false, parallax: 0.05 },
+        { id: 's10', type: 'shape', shape: 'square', size: 70, color: COLORS[10], x: w*0.1, y: h*0.1, vx: 0.3, vy: 0.9, orbit: false, parallax: 0.02, spin: -0.2 },
+
+        // Texts
+        { id: 't1', type: 'text', cls: 'text-hero gradient-text', text: 'MOTION', x: w*0.5, y: h*0.35, vx: 0, vy: 0, parallax: 0.08, anchor: true },
+        { id: 't2', type: 'text', cls: 'text-hero gradient-text-2', text: 'LAB', x: w*0.5, y: h*0.52, vx: 0, vy: 0, parallax: 0.06, anchor: true },
+        { id: 't3', type: 'text', cls: 'text-sub', text: 'INTERACTIVE EXPERIENCE', x: w*0.5, y: h*0.66, vx: 0, vy: 0, parallax: 0.04, anchor: true, color: 'rgba(255,255,255,0.5)' },
+        { id: 't4', type: 'text', cls: 'text-code pulse', text: 'preact + realtime rendering', x: w*0.5, y: h*0.76, vx: 0, vy: 0, parallax: 0.03, anchor: true, color: COLORS[5] },
+
+        { id: 't5', type: 'text', cls: 'text-label', text: 'VELOCITY', x: w*0.12, y: h*0.2, vx: 0.4, vy: 0.3, parallax: 0.05, color: COLORS[0] },
+        { id: 't6', type: 'text', cls: 'text-label', text: 'PARALLAX', x: w*0.88, y: h*0.4, vx: -0.3, vy: 0.5, parallax: 0.07, color: COLORS[2] },
+        { id: 't7', type: 'text', cls: 'text-label', text: 'PHYSICS', x: w*0.7, y: h*0.85, vx: -0.5, vy: -0.3, parallax: 0.04, color: COLORS[3] },
+        { id: 't8', type: 'text', cls: 'text-label', text: 'REACTIVE', x: w*0.25, y: h*0.9, vx: 0.6, vy: -0.4, parallax: 0.06, color: COLORS[6] },
+        { id: 't9', type: 'text', cls: 'text-code', text: '{ x: 0, y: 0, velocity: ∞ }', x: w*0.15, y: h*0.45, vx: 0.2, vy: 0.6, parallax: 0.03, color: COLORS[4] },
+        { id: 't10', type: 'text', cls: 'text-code', text: 'transform: translate3d()', x: w*0.8, y: h*0.7, vx: -0.4, vy: -0.2, parallax: 0.05, color: COLORS[1] },
+
+        { id: 't11', type: 'text', cls: 'text-large', text: 'MOVE', x: w*0.3, y: h*0.4, vx: 0, vy: 0, parallax: 0.12, anchor: true },
+        { id: 't12', type: 'text', cls: 'text-large', text: 'FLOW', x: w*0.7, y: h*0.65, vx: 0, vy: 0, parallax: 0.10, anchor: true },
+      ];
+    }
+
+    // ── Particle background ──
+    function ParticleCanvas({ mouseRef }) {
+      const canvasRef = useRef(null);
+      const particlesRef = useRef([]);
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        let w = canvas.width = window.innerWidth;
+        let h = canvas.height = window.innerHeight;
+        let raf;
+
+        const particles = [];
+        for (let i = 0; i < 80; i++) {
+          particles.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 2 + 0.5,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            alpha: Math.random() * 0.4 + 0.1,
+          });
+        }
+        particlesRef.current = particles;
+
+        function draw() {
+          ctx.clearRect(0, 0, w, h);
+          const mx = mouseRef.current.x;
+          const my = mouseRef.current.y;
+
+          for (const p of particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if (p.x < 0) p.x = w;
+            if (p.x > w) p.x = 0;
+            if (p.y < 0) p.y = h;
+            if (p.y > h) p.y = 0;
+
+            // Mouse repulsion
+            const d = dist(p.x, p.y, mx, my);
+            if (d < 150) {
+              const angle = Math.atan2(p.y - my, p.x - mx);
+              const force = (150 - d) / 150 * 2;
+              p.x += Math.cos(angle) * force;
+              p.y += Math.sin(angle) * force;
+            }
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+            ctx.fill();
+          }
+
+          // Connection lines
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const d = dist(particles[i].x, particles[i].y, particles[j].x, particles[j].y);
+              if (d < 120) {
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${0.06 * (1 - d/120)})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+              }
+            }
+          }
+
+          // Mouse connection lines
+          for (const p of particles) {
+            const d = dist(p.x, p.y, mx, my);
+            if (d < 200) {
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(mx, my);
+              ctx.strokeStyle = `rgba(102, 126, 234, ${0.15 * (1 - d/200)})`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
+
+          raf = requestAnimationFrame(draw);
+        }
+
+        draw();
+
+        const onResize = () => {
+          w = canvas.width = window.innerWidth;
+          h = canvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', onResize);
+
+        return () => {
+          cancelAnimationFrame(raf);
+          window.removeEventListener('resize', onResize);
+        };
+      }, []);
+
+      return html`<canvas class="canvas-bg" ref=${canvasRef} />`;
+    }
+
+    // ── Main App ──
+    function App() {
+      const [objects, setObjects] = useState([]);
+      const [fps, setFps] = useState(0);
+      const [time, setTime] = useState(0);
+      const mouseRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+      const mouseSmooth = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+      const cursorRef = useRef(null);
+      const objectsRef = useRef([]);
+      const frameRef = useRef(0);
+      const lastTimeRef = useRef(performance.now());
+      const fpsFrames = useRef(0);
+      const fpsTime = useRef(performance.now());
+
+      // Initialize
+      useEffect(() => {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const objs = createSceneObjects(w, h);
+        objectsRef.current = objs.map(o => ({ ...o, cx: o.x, cy: o.y, rotation: 0 }));
+        setObjects(objectsRef.current);
+
+        const onResize = () => {
+          const nw = window.innerWidth;
+          const nh = window.innerHeight;
+          const newObjs = createSceneObjects(nw, nh);
+          objectsRef.current = newObjs.map((o, i) => ({
+            ...o,
+            cx: o.x,
+            cy: o.y,
+            rotation: objectsRef.current[i]?.rotation || 0,
+          }));
+        };
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+      }, []);
+
+      // Mouse tracking
+      useEffect(() => {
+        const onMove = (e) => {
+          const x = e.touches ? e.touches[0].clientX : e.clientX;
+          const y = e.touches ? e.touches[0].clientY : e.clientY;
+          mouseRef.current = { x, y };
+        };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: true });
+        return () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('touchmove', onMove);
+        };
+      }, []);
+
+      // Animation loop
+      useEffect(() => {
+        let raf;
+        const W = () => window.innerWidth;
+        const H = () => window.innerHeight;
+
+        function tick() {
+          const now = performance.now();
+          const dt = Math.min((now - lastTimeRef.current) / 16.67, 3);
+          lastTimeRef.current = now;
+          frameRef.current++;
+
+          // FPS
+          fpsFrames.current++;
+          if (now - fpsTime.current >= 500) {
+            setFps(Math.round(fpsFrames.current / ((now - fpsTime.current) / 1000)));
+            fpsFrames.current = 0;
+            fpsTime.current = now;
+          }
+
+          setTime(now * 0.001);
+
+          // Smooth mouse
+          mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouseRef.current.x, 0.08);
+          mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouseRef.current.y, 0.08);
+
+          // Cursor follower
+          if (cursorRef.current) {
+            cursorRef.current.style.transform =
+              `translate(${mouseSmooth.current.x}px, ${mouseSmooth.current.y}px)`;
+          }
+
+          const w = W();
+          const h = H();
+          const mx = mouseRef.current.x;
+          const my = mouseRef.current.y;
+
+          // Update objects
+          const objs = objectsRef.current;
+          for (const obj of objs) {
+            if (obj.anchor) {
+              // Parallax only
+              const dx = (mx - w/2) * obj.parallax;
+              const dy = (my - h/2) * obj.parallax;
+              obj.cx = obj.x + dx;
+              obj.cy = obj.y + dy;
+            } else {
+              // Move
+              obj.cx += obj.vx * dt;
+              obj.cy += obj.vy * dt;
+
+              // Bounce off walls
+              if (obj.cx < -50) { obj.cx = -50; obj.vx *= -1; }
+              if (obj.cx > w + 50) { obj.cx = w + 50; obj.vx *= -1; }
+              if (obj.cy < -50) { obj.cy = -50; obj.vy *= -1; }
+              if (obj.cy > h + 50) { obj.cy = h + 50; obj.vy *= -1; }
+
+              // Parallax offset
+              const dx = (mx - w/2) * obj.parallax;
+              const dy = (my - h/2) * obj.parallax;
+              obj.cx += dx * 0.02;
+              obj.cy += dy * 0.02;
+
+              // Mouse attraction/repulsion
+              const d = dist(obj.cx, obj.cy, mx, my);
+              if (d < 200 && d > 0) {
+                const angle = Math.atan2(obj.cy - my, obj.cx - mx);
+                const force = (200 - d) / 200 * 1.5;
+                obj.cx += Math.cos(angle) * force * dt;
+                obj.cy += Math.sin(angle) * force * dt;
+              }
+            }
+
+            // Rotation
+            if (obj.spin) {
+              obj.rotation = (obj.rotation || 0) + obj.spin * dt;
+            }
+          }
+
+          setObjects([...objs]);
+          raf = requestAnimationFrame(tick);
+        }
+
+        tick();
+        return () => cancelAnimationFrame(raf);
+      }, []);
+
+      return html`
+        <${ParticleCanvas} mouseRef=${mouseRef} />
+
+        <div class="scene">
+          ${objects.map(obj => {
+            if (obj.type === 'shape') {
+              const extraRotation = obj.shape === 'diamond' ? 45 : 0;
+              const totalRotation = (obj.rotation || 0) + extraRotation;
+              return html`
+                <div
+                  key=${obj.id}
+                  class="float-obj shape-${obj.shape}"
+                  style=${{
+                    width: obj.size + 'px',
+                    height: obj.shape === 'triangle' ? 0 : obj.size + 'px',
+                    background: obj.shape === 'ring' || obj.shape === 'triangle' ? 'transparent' : obj.color,
+                    borderColor: obj.color,
+                    color: obj.color,
+                    transform: `translate3d(${obj.cx - obj.size/2}px, ${obj.cy - obj.size/2}px, 0) rotate(${totalRotation}deg)`,
+                    opacity: 0.8,
+                  }}
+                />
+              `;
+            } else {
+              return html`
+                <div
+                  key=${obj.id}
+                  class="float-text ${obj.cls}"
+                  style=${{
+                    transform: `translate3d(${obj.cx}px, ${obj.cy}px, 0) translate(-50%, -50%)`,
+                    color: obj.color || 'inherit',
+                  }}
+                >${obj.text}</div>
+              `;
+            }
+          })}
+        </div>
+
+        <div class="cursor-follower" ref=${cursorRef}>
+          <div class="cursor-ring">
+            <div class="cursor-dot" />
+          </div>
+        </div>
+
+        <div class="info-panel">
+          <div>FPS: <span class="val">${fps}</span></div>
+          <div>MOUSE: <span class="val">${Math.round(mouseRef.current.x)}, ${Math.round(mouseRef.current.y)}</span></div>
+          <div>OBJECTS: <span class="val">${objects.length}</span></div>
+          <div>FRAME: <span class="val">${frameRef.current}</span></div>
+          <div style="margin-top: 8px; color: rgba(255,255,255,0.2)">MOVE YOUR CURSOR</div>
+        </div>
+      `;
+    }
+
+    render(html`<${App} />`, document.getElementById('app'));
+  </script>
+</body>
+</html>
