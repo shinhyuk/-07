@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Scroll Experience</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;700;900&family=Space+Grotesk:wght@400;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --total-sections: 10;
+    }
+
+    html { scroll-behavior: auto; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .scroll-container {
+      height: calc(var(--total-sections) * 100vh);
+      position: relative;
+    }
+
+    .fixed-viewport {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      perspective: 1200px;
+      perspective-origin: 50% 50%;
+    }
+
+    /* 3D World */
+    .world {
+      position: absolute;
+      width: 100%; height: 100%;
+      transform-style: preserve-3d;
+      transition: none;
+    }
+
+    /* Background gradient */
+    .bg-gradient {
+      position: absolute;
+      width: 100%; height: 100%;
+      transition: background 0.8s ease;
+    }
+
+    /* Grid floor */
+    .grid-floor {
+      position: absolute;
+      width: 300vw; height: 300vh;
+      left: -100vw; top: 50%;
+      transform-style: preserve-3d;
+      transform: rotateX(75deg) translateZ(-200px);
+      background-image:
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 80px 80px;
+      opacity: 0.5;
+    }
+
+    /* Floating cards */
+    .card-3d {
+      position: absolute;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transition: opacity 0.6s ease;
+    }
+
+    .card-3d img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-3d .card-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 20px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    /* Section text */
+    .section-text {
+      position: absolute;
+      width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .section-text.active { opacity: 1; }
+
+    .section-text h1 {
+      font-size: clamp(36px, 8vw, 100px);
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 16px;
+      text-shadow: 0 4px 40px rgba(0,0,0,0.5);
+    }
+
+    .section-text p {
+      font-size: clamp(14px, 2vw, 22px);
+      font-weight: 200;
+      max-width: 600px;
+      line-height: 1.6;
+      opacity: 0.7;
+    }
+
+    .section-text .tag {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* Particles */
+    .particles {
+      position: absolute;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.5);
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #667eea, #f093fb, #f5576c, #ffd86f, #4facfe);
+      background-size: 300% 100%;
+      animation: gradient-shift 3s linear infinite;
+      z-index: 200;
+      transition: width 0.1s linear;
+    }
+
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 300% 50%; }
+    }
+
+    /* Section indicator */
+    .section-dots {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .section-dot.active {
+      background: #fff;
+      transform: scale(1.5);
+      box-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    /* Scroll hint */
+    .scroll-hint {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      opacity: 0.4;
+      animation: bounce-hint 2s ease infinite;
+    }
+
+    @keyframes bounce-hint {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-8px); }
+    }
+
+    .scroll-hint.hidden { opacity: 0; transition: opacity 0.5s; }
+
+    /* Ring geometry */
+    .ring-3d {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.1);
+      transform-style: preserve-3d;
+    }
+
+    /* Glow orb */
+    .glow-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.3;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="scroll-container" id="scrollContainer">
+  <div class="fixed-viewport" id="viewport">
+    <div class="bg-gradient" id="bgGradient"></div>
+    <div class="grid-floor" id="gridFloor"></div>
+    <div class="world" id="world"></div>
+    <div class="particles" id="particles"></div>
+
+    <!-- Section texts -->
+    <div class="section-text" id="sec0">
+      <div class="tag">Welcome to</div>
+      <h1 style="background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">THE UNIVERSE</h1>
+      <p>스크롤하여 3D 공간을 탐험하세요</p>
+    </div>
+    <div class="section-text" id="sec1">
+      <div class="tag">Chapter 01</div>
+      <h1>BEYOND<br>REALITY</h1>
+      <p>현실의 경계를 넘어, 새로운 차원이 펼쳐집니다</p>
+    </div>
+    <div class="section-text" id="sec2">
+      <div class="tag">Chapter 02</div>
+      <h1 style="background:linear-gradient(135deg,#f093fb,#f5576c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">COLORS<br>IN MOTION</h1>
+      <p>색의 물결 속에서 형태가 춤을 춥니다</p>
+    </div>
+    <div class="section-text" id="sec3">
+      <div class="tag">Chapter 03</div>
+      <h1>DEPTH &<br>DIMENSION</h1>
+      <p>공간의 깊이가 만들어내는 무한의 가능성</p>
+    </div>
+    <div class="section-text" id="sec4">
+      <div class="tag">Chapter 04</div>
+      <h1 style="background:linear-gradient(135deg,#4facfe,#00f2fe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">DIGITAL<br>DREAMS</h1>
+      <p>디지털 세계의 꿈이 현실이 되는 순간</p>
+    </div>
+    <div class="section-text" id="sec5">
+      <div class="tag">Chapter 05</div>
+      <h1>LIGHT &<br>SHADOW</h1>
+      <p>빛과 그림자가 공존하는 공간</p>
+    </div>
+    <div class="section-text" id="sec6">
+      <div class="tag">Chapter 06</div>
+      <h1 style="background:linear-gradient(135deg,#f5576c,#ffd86f);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">INFINITE<br>CANVAS</h1>
+      <p>끝없이 펼쳐지는 창작의 캔버스</p>
+    </div>
+    <div class="section-text" id="sec7">
+      <div class="tag">Chapter 07</div>
+      <h1>GRAVITY<br>ZERO</h1>
+      <p>무중력 속에서 자유롭게 부유하는 형태들</p>
+    </div>
+    <div class="section-text" id="sec8">
+      <div class="tag">Chapter 08</div>
+      <h1 style="background:linear-gradient(135deg,#43e97b,#38f9d7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EMERGENCE</h1>
+      <p>복잡함 속에서 피어나는 단순한 아름다움</p>
+    </div>
+    <div class="section-text" id="sec9">
+      <div class="tag">The End</div>
+      <h1>THANK<br>YOU</h1>
+      <p>다시 위로 스크롤하여 여정을 되돌아보세요</p>
+    </div>
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="section-dots" id="sectionDots"></div>
+
+<div class="scroll-hint" id="scrollHint">↓ SCROLL TO EXPLORE ↓</div>
+
+<script>
+(function() {
+  const TOTAL = 10;
+  const world = document.getElementById('world');
+  const viewport = document.getElementById('viewport');
+  const bgGradient = document.getElementById('bgGradient');
+  const gridFloor = document.getElementById('gridFloor');
+  const progressBar = document.getElementById('progressBar');
+  const sectionDots = document.getElementById('sectionDots');
+  const scrollHint = document.getElementById('scrollHint');
+  const particlesEl = document.getElementById('particles');
+
+  // Unsplash image IDs for stunning visuals
+  const images = [
+    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=80',
+    'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=600&q=80',
+    'https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=600&q=80',
+    'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=600&q=80',
+    'https://images.unsplash.com/photo-1465101162946-4377e57745c3?w=600&q=80',
+    'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=600&q=80',
+    'https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?w=600&q=80',
+    'https://images.unsplash.com/photo-1543722530-d2c3201371e7?w=600&q=80',
+    'https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=600&q=80',
+    'https://images.unsplash.com/photo-1464802686167-b939a6910659?w=600&q=80',
+    'https://images.unsplash.com/photo-1520034475321-cbe63696469a?w=600&q=80',
+    'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=600&q=80',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=80',
+    'https://images.unsplash.com/photo-1509773896068-7fd415d91e2e?w=600&q=80',
+    'https://images.unsplash.com/photo-1484589065579-248aad0d628b?w=600&q=80',
+    'https://images.unsplash.com/photo-1536431311719-398b6704d4cc?w=600&q=80',
+    'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=600&q=80',
+    'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600&q=80',
+    'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&q=80',
+    'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=600&q=80',
+  ];
+
+  const gradients = [
+    'radial-gradient(ellipse at 50% 50%, #0a0a2e 0%, #000 100%)',
+    'radial-gradient(ellipse at 30% 70%, #1a0a2e 0%, #050510 100%)',
+    'radial-gradient(ellipse at 70% 30%, #2e0a1a 0%, #0a0008 100%)',
+    'radial-gradient(ellipse at 50% 50%, #0a1a2e 0%, #000510 100%)',
+    'radial-gradient(ellipse at 40% 60%, #0a2e2e 0%, #000a0a 100%)',
+    'radial-gradient(ellipse at 60% 40%, #1a1a0a 0%, #050500 100%)',
+    'radial-gradient(ellipse at 50% 50%, #2e1a0a 0%, #0a0500 100%)',
+    'radial-gradient(ellipse at 30% 30%, #0a0a2e 0%, #000005 100%)',
+    'radial-gradient(ellipse at 70% 70%, #0a2e0a 0%, #000500 100%)',
+    'radial-gradient(ellipse at 50% 50%, #1a0a2e 0%, #050010 100%)',
+  ];
+
+  // Generate card data
+  const cards = [];
+  for (let s = 0; s < TOTAL; s++) {
+    const count = 4 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + s * 0.5;
+      const radius = 300 + Math.random() * 400;
+      const z = -200 + Math.random() * 400;
+      cards.push({
+        section: s,
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius * 0.5 - 50,
+        z: z,
+        w: 200 + Math.random() * 180,
+        h: 150 + Math.random() * 130,
+        rotX: (Math.random() - 0.5) * 30,
+        rotY: (Math.random() - 0.5) * 40,
+        rotZ: (Math.random() - 0.5) * 15,
+        img: images[(s * 3 + i) % images.length],
+        speed: 0.5 + Math.random() * 1.5,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  // Create glow orbs
+  for (let i = 0; i < 5; i++) {
+    const orb = document.createElement('div');
+    orb.className = 'glow-orb';
+    const size = 200 + Math.random() * 300;
+    const colors = ['#667eea', '#f093fb', '#f5576c', '#4facfe', '#43e97b', '#ffd86f'];
+    orb.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      background: ${colors[i % colors.length]};
+      left: ${Math.random() * 100}%; top: ${Math.random() * 100}%;
+    `;
+    orb.dataset.idx = i;
+    viewport.appendChild(orb);
+  }
+
+  // Create 3D rings
+  for (let i = 0; i < 4; i++) {
+    const ring = document.createElement('div');
+    ring.className = 'ring-3d';
+    const size = 300 + i * 150;
+    ring.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      left: 50%; top: 50%;
+      margin-left: -${size/2}px; margin-top: -${size/2}px;
+    `;
+    ring.dataset.idx = i;
+    world.appendChild(ring);
+  }
+
+  // Create cards
+  const cardEls = [];
+  cards.forEach((c, idx) => {
+    const el = document.createElement('div');
+    el.className = 'card-3d';
+    el.style.width = c.w + 'px';
+    el.style.height = c.h + 'px';
+    el.innerHTML = `<img src="${c.img}" alt="" loading="lazy">`;
+    el.style.opacity = '0';
+    world.appendChild(el);
+    cardEls.push(el);
+  });
+
+  // Create particles
+  const particleCount = 50;
+  const particleEls = [];
+  for (let i = 0; i < particleCount; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 1 + Math.random() * 3;
+    p.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      left: ${Math.random() * 100}%; top: ${Math.random() * 100}%;
+    `;
+    p.dataset.speedX = (Math.random() - 0.5) * 0.3;
+    p.dataset.speedY = (Math.random() - 0.5) * 0.3;
+    particlesEl.appendChild(p);
+    particleEls.push(p);
+  }
+
+  // Section dots
+  for (let i = 0; i < TOTAL; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'section-dot';
+    dot.addEventListener('click', () => {
+      window.scrollTo({ top: i * window.innerHeight, behavior: 'smooth' });
+    });
+    sectionDots.appendChild(dot);
+  }
+  const dots = sectionDots.querySelectorAll('.section-dot');
+
+  // Animation state
+  let scrollY = 0;
+  let targetScroll = 0;
+  let time = 0;
+  let mouseX = 0.5;
+  let mouseY = 0.5;
+
+  window.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX / window.innerWidth;
+    mouseY = e.clientY / window.innerHeight;
+  });
+
+  window.addEventListener('scroll', () => {
+    targetScroll = window.scrollY;
+  }, { passive: true });
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function tick() {
+    time += 0.016;
+    scrollY = lerp(scrollY, targetScroll, 0.08);
+
+    const maxScroll = (TOTAL - 1) * window.innerHeight;
+    const progress = Math.min(scrollY / maxScroll, 1);
+    const section = Math.min(Math.floor(scrollY / window.innerHeight), TOTAL - 1);
+    const sectionProgress = (scrollY / window.innerHeight) - section;
+
+    // Progress bar
+    progressBar.style.width = (progress * 100) + '%';
+
+    // Scroll hint
+    if (scrollY > 100) scrollHint.classList.add('hidden');
+    else scrollHint.classList.remove('hidden');
+
+    // Section dots
+    dots.forEach((d, i) => d.classList.toggle('active', i === section));
+
+    // Section texts
+    for (let i = 0; i < TOTAL; i++) {
+      const el = document.getElementById('sec' + i);
+      if (!el) continue;
+      if (i === section) {
+        el.classList.add('active');
+        const p = sectionProgress;
+        const fadeIn = Math.min(p * 4, 1);
+        const fadeOut = p > 0.7 ? 1 - (p - 0.7) / 0.3 : 1;
+        el.style.opacity = fadeIn * fadeOut;
+        el.style.transform = `translateY(${(1 - fadeIn) * 50 + (p > 0.7 ? (p - 0.7) * -100 : 0)}px)`;
+      } else {
+        el.classList.remove('active');
+        el.style.opacity = '0';
+      }
+    }
+
+    // Background
+    bgGradient.style.background = gradients[section] || gradients[0];
+
+    // Grid floor
+    const gridOffset = scrollY * 0.3;
+    gridFloor.style.transform = `rotateX(75deg) translateZ(-200px) translateY(${gridOffset % 80}px)`;
+    gridFloor.style.opacity = 0.3 + Math.sin(time * 0.5) * 0.15;
+
+    // 3D World rotation
+    const worldRotY = (mouseX - 0.5) * 15 + Math.sin(time * 0.3) * 3;
+    const worldRotX = (mouseY - 0.5) * -10 + Math.cos(time * 0.2) * 2;
+    world.style.transform = `rotateY(${worldRotY}deg) rotateX(${worldRotX}deg)`;
+
+    // Update cards
+    cards.forEach((c, idx) => {
+      const el = cardEls[idx];
+      const sectionDiff = (scrollY / window.innerHeight) - c.section;
+
+      // Visibility range
+      if (Math.abs(sectionDiff) > 1.5) {
+        el.style.opacity = '0';
+        return;
+      }
+
+      const appear = 1 - Math.min(Math.abs(sectionDiff), 1);
+      el.style.opacity = appear;
+
+      // Floating animation
+      const floatY = Math.sin(time * c.speed + c.phase) * 20;
+      const floatX = Math.cos(time * c.speed * 0.7 + c.phase) * 15;
+      const floatRot = Math.sin(time * c.speed * 0.5 + c.phase) * 5;
+
+      // Scroll-driven Z movement
+      const scrollZ = sectionDiff * -600;
+
+      // Explosion on transition
+      const explode = Math.abs(sectionDiff) > 0.5 ? (Math.abs(sectionDiff) - 0.5) * 2 : 0;
+      const explodeX = c.x * (1 + explode * 0.5);
+      const explodeY = c.y * (1 + explode * 0.5);
+
+      const tx = explodeX + floatX;
+      const ty = explodeY + floatY;
+      const tz = c.z + scrollZ;
+      const rx = c.rotX + floatRot;
+      const ry = c.rotY + floatRot * 0.7;
+      const rz = c.rotZ + floatRot * 0.3;
+
+      el.style.transform = `translate3d(calc(-50% + ${tx}px), calc(-50% + ${ty}px), ${tz}px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg)`;
+      el.style.left = '50%';
+      el.style.top = '50%';
+
+      // Scale based on distance
+      const scale = Math.max(0.3, 1 - Math.abs(sectionDiff) * 0.3);
+      el.style.transform += ` scale(${scale})`;
+    });
+
+    // Rings
+    const rings = world.querySelectorAll('.ring-3d');
+    rings.forEach((ring, i) => {
+      const rx = time * (10 + i * 8) + i * 45;
+      const ry = time * (15 + i * 5) + i * 30;
+      const rz = Math.sin(time * 0.5 + i) * 20;
+      const pulse = 1 + Math.sin(time * 2 + i * 1.5) * 0.05;
+      ring.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg) scale(${pulse})`;
+      ring.style.borderColor = `rgba(255,255,255,${0.05 + Math.sin(time + i) * 0.03})`;
+    });
+
+    // Glow orbs
+    const orbs = viewport.querySelectorAll('.glow-orb');
+    orbs.forEach((orb, i) => {
+      const ox = 50 + Math.sin(time * 0.3 + i * 1.2) * 30;
+      const oy = 50 + Math.cos(time * 0.25 + i * 0.8) * 30;
+      orb.style.left = ox + '%';
+      orb.style.top = oy + '%';
+      orb.style.opacity = 0.15 + Math.sin(time * 0.5 + i * 2) * 0.1;
+    });
+
+    // Particles
+    particleEls.forEach((p) => {
+      let x = parseFloat(p.style.left);
+      let y = parseFloat(p.style.top);
+      x += parseFloat(p.dataset.speedX) + Math.sin(time + parseFloat(p.dataset.speedY) * 10) * 0.05;
+      y += parseFloat(p.dataset.speedY) + Math.cos(time + parseFloat(p.dataset.speedX) * 10) * 0.05;
+      if (x < -2) x = 102;
+      if (x > 102) x = -2;
+      if (y < -2) y = 102;
+      if (y > 102) y = -2;
+      p.style.left = x + '%';
+      p.style.top = y + '%';
+      p.style.opacity = 0.2 + Math.sin(time * 2 + parseFloat(p.dataset.speedX) * 20) * 0.3;
+    });
+
+    requestAnimationFrame(tick);
+  }
+
+  tick();
+})();
+</script>
+</body>
+</html>
